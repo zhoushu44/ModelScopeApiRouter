@@ -5,7 +5,7 @@ services:
     build: .
     container_name: modelscope-router
     ports:
-      - "8080:8080"
+      - "2166:2166"
     restart: unless-stopped
     volumes:
       - ./router_data:/app/refactored_router/router_data

@@ -107,7 +107,7 @@ async def get_examples():
         "chat": {
             "name": "对话 (chat)",
             "description": "文本对话模型，只需要传 model='chat'",
-            "curl": """curl -X POST http://localhost:8080/v1/chat/completions \\
+            "curl": """curl -X POST http://localhost:2166/v1/chat/completions \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer multi-proxy-2025-2000q" \\
   -d '{
@@ -119,7 +119,7 @@ async def get_examples():
             "python": """import openai
 
 client = openai.OpenAI(
-    base_url="http://localhost:8080/v1",
+    base_url="http://localhost:2166/v1",
     api_key="multi-proxy-2025-2000q"
 )
 
@@ -132,7 +132,7 @@ response = client.chat.completions.create(
 
 print(response.choices[0].message.content)""",
             "openai": {
-                "base_url": "http://localhost:8080/v1",
+                "base_url": "http://localhost:2166/v1",
                 "api_key": "multi-proxy-2025-2000q",
                 "model": "chat"
             }
@@ -140,7 +140,7 @@ print(response.choices[0].message.content)""",
         "vision": {
             "name": "视觉理解 (vision)",
             "description": "视觉理解模型，支持单图或多图，只需要传 model='vision'",
-            "curl": """curl -X POST http://localhost:8080/v1/chat/completions \\
+            "curl": """curl -X POST http://localhost:2166/v1/chat/completions \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer multi-proxy-2025-2000q" \\
   -d '{
@@ -159,7 +159,7 @@ print(response.choices[0].message.content)""",
             "python": """import openai
 
 client = openai.OpenAI(
-    base_url="http://localhost:8080/v1",
+    base_url="http://localhost:2166/v1",
     api_key="multi-proxy-2025-2000q"
 )
 
@@ -194,7 +194,7 @@ response_multi = client.chat.completions.create(
 )
 print("多图结果:", response_multi.choices[0].message.content)""",
             "openai": {
-                "base_url": "http://localhost:8080/v1",
+                "base_url": "http://localhost:2166/v1",
                 "api_key": "multi-proxy-2025-2000q",
                 "model": "vision"
             }
@@ -202,7 +202,7 @@ print("多图结果:", response_multi.choices[0].message.content)""",
         "txt2img": {
             "name": "文生图 (txt2img)",
             "description": "文本生成图片，只需要传 model='txt2img'",
-            "curl": """curl -X POST http://localhost:8080/v1/chat/completions \\
+            "curl": """curl -X POST http://localhost:2166/v1/chat/completions \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer multi-proxy-2025-2000q" \\
   -d '{
@@ -212,7 +212,7 @@ print("多图结果:", response_multi.choices[0].message.content)""",
             "python": """import openai
 
 client = openai.OpenAI(
-    base_url="http://localhost:8080/v1",
+    base_url="http://localhost:2166/v1",
     api_key="multi-proxy-2025-2000q"
 )
 
@@ -223,7 +223,7 @@ response = client.chat.completions.create(
 
 print(response)""",
             "openai": {
-                "base_url": "http://localhost:8080/v1",
+                "base_url": "http://localhost:2166/v1",
                 "api_key": "multi-proxy-2025-2000q",
                 "model": "txt2img"
             }
@@ -231,7 +231,7 @@ print(response)""",
         "img2img": {
             "name": "图生图 (img2img)",
             "description": "图片生成图片，支持单图或多图输入，只需要传 model='img2img'",
-            "curl": """curl -X POST http://localhost:8080/v1/chat/completions \\
+            "curl": """curl -X POST http://localhost:2166/v1/chat/completions \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer multi-proxy-2025-2000q" \\
   -d '{
@@ -249,7 +249,7 @@ print(response)""",
             "python": """import openai
 
 client = openai.OpenAI(
-    base_url="http://localhost:8080/v1",
+    base_url="http://localhost:2166/v1",
     api_key="multi-proxy-2025-2000q"
 )
 
@@ -284,7 +284,7 @@ response_multi = client.chat.completions.create(
 )
 print("多图结果:", response_multi)""",
             "openai": {
-                "base_url": "http://localhost:8080/v1",
+                "base_url": "http://localhost:2166/v1",
                 "api_key": "multi-proxy-2025-2000q",
                 "model": "img2img"
             }
@@ -353,8 +353,8 @@ async def chat_completions(request: Request):
 
 @app.on_event("startup")
 async def startup_event():
-    print(f"Server is running on port 8080...")
-    print(f"Web UI: http://localhost:8080")
+    print(f"Server is running on port 2166...")
+    print(f"Web UI: http://localhost:2166")
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8080, log_level="info")
+    uvicorn.run(app, host="0.0.0.0", port=2166, log_level="info")

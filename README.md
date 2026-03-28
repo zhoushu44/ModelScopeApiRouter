@@ -43,7 +43,7 @@ docker-compose up -d
 
 # 或直接构建和运行
 docker build -t modelscope-router .
-docker run -d -p 8080:8080 -v ./router_data:/app/refactored_router/router_data --name modelscope-router modelscope-router
+docker run -d -p 2166:2166 -v ./router_data:/app/refactored_router/router_data --name modelscope-router modelscope-router
 ```
 
 ### 方式二：本地运行
@@ -63,13 +63,13 @@ pip install -r requirements.txt
 python -m refactored_router.main
 ```
 
-服务将在 `http://localhost:8080` 启动。数据将持久化保存在 `./router_data` 目录。
+服务将在 `http://localhost:2166` 启动。数据将持久化保存在 `./router_data` 目录。
 
 ---
 
 ## 🌐 Web UI 使用
 
-打开浏览器访问：**http://localhost:8080**
+打开浏览器访问：**http://localhost:2166**
 
 ### 功能：
 - **API Key 管理**: 添加、删除 API Key
@@ -96,7 +96,7 @@ python -m refactored_router.main
 
 ### 接入第三方客户端 (Cursor, NextChat 等)
 
-- **Base URL (API域名)**: `http://localhost:8080/v1` (注意部分软件不需要 `/v1`)
+- **Base URL (API域名)**: `http://localhost:2166/v1` (注意部分软件不需要 `/v1`)
 - **API Key**: 任意填写
 - **Model Name**: `chat` / `vision` / `txt2img` / `img2img` (推荐)
 
@@ -104,7 +104,7 @@ python -m refactored_router.main
 
 **对话：**
 ```bash
-curl http://localhost:8080/v1/chat/completions \
+curl http://localhost:2166/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
     "model": "chat",
@@ -115,7 +115,7 @@ curl http://localhost:8080/v1/chat/completions \
 
 **文生图：**
 ```bash
-curl http://localhost:8080/v1/chat/completions \
+curl http://localhost:2166/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
     "model": "txt2img",
@@ -125,7 +125,7 @@ curl http://localhost:8080/v1/chat/completions \
 
 **视觉理解（单图）：**
 ```bash
-curl http://localhost:8080/v1/chat/completions \
+curl http://localhost:2166/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
     "model": "vision",
@@ -148,7 +148,7 @@ from openai import OpenAI
 
 client = OpenAI(
     api_key="dummy",
-    base_url="http://localhost:8080/v1"
+    base_url="http://localhost:2166/v1"
 )
 
 # 对话
@@ -229,14 +229,14 @@ docker build -t modelscope-router .
 
 # 运行容器
 docker run -d \
-  -p 8080:8080 \
+  -p 2166:2166 \
   -v ./router_data:/app/refactored_router/router_data \
   --name modelscope-router \
   modelscope-router
 ```
 
 ### 端口说明
-- 服务监听：**0.0.0.0:8080**
+- 服务监听：**0.0.0.0:2166**
 - 可从外部网络访问
 
 ---
