@@ -6,10 +6,6 @@ on:
   release:
     types: [ created ]
 
-# 需要配置的 GitHub Secrets:
-# - DOCKER_HUB_USERNAME: 你的 Docker Hub 用户名
-# - DOCKER_HUB_TOKEN: 你的 Docker Hub Access Token (建议使用 Personal Access Token)
-
 jobs:
   build:
     runs-on: ubuntu-latest

@@ -287,8 +287,7 @@ docker run -d \
 ├── README.md
 ├── docker-compose.yml
 ├── logo.jpg
-├── requirements.txt
-└── roo-code-example.png
+└── requirements.txt
 ```
 
 ---
