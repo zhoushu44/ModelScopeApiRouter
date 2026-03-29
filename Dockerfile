@@ -13,4 +13,4 @@ COPY refactored_router ./refactored_router
 EXPOSE 2166
 
 # 启动命令
-CMD ["python", "-m", "refactored_router.main"]
+CMD ["python", "refactored_router/main.py"]
