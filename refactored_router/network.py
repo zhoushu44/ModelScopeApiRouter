@@ -52,7 +52,7 @@ class APIClient:
         """从响应中提取图片 URL"""
         try:
             # 尝试 OpenAI 格式：choices[0].message.content
-            if "choices" in result and len(result["choices"]) > 0:
+            if "choices" in result and result["choices"] is not None and len(result["choices"]) > 0:
                 choice = result["choices"][0]
                 if "message" in choice and "content" in choice["message"]:
                     content = choice["message"]["content"]
@@ -120,8 +120,8 @@ class APIClient:
             # 构建标准的 OpenAI 兼容响应格式，同时包含图片链接
             formatted_result = result.copy()
             
-            # 如果没有 choices 或者 choices 为空，创建一个
-            if "choices" not in formatted_result or len(formatted_result["choices"]) == 0:
+            # 如果没有 choices 或者 choices 为空/None，创建一个
+            if "choices" not in formatted_result or formatted_result["choices"] is None or len(formatted_result["choices"]) == 0:
                 formatted_result["choices"] = [{
                     "index": 0,
                     "message": {
