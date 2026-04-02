@@ -180,7 +180,8 @@ class APIClient:
                         modelscope_data["prompt"] = " ".join(text_parts)
                     
                     if image_urls and target_category == "img2img":
-                        modelscope_data["image_url"] = image_urls
+                        # ModelScope 图生图接口的 image_url 按官方示例使用单个字符串
+                        modelscope_data["image_url"] = image_urls[0]
             
             # 复制其他可能的参数
             for key in ["width", "height", "size", "n", "quality"]:
@@ -332,18 +333,18 @@ class APIClient:
                     
                     # 对文生图和图生图响应进行特殊处理（异步模式）
                     if target_category in ["text2img", "img2img"]:
-                        # 检查是否有 task_id（异步模式）
-                        if "task_id" in result:
-                            task_id = result["task_id"]
+                        # 检查是否有非空 task_id（异步模式）
+                        task_id = result.get("task_id")
+                        if task_id:
                             logger.info(f"  异步任务已提交，task_id: {task_id}")
-                            
+
                             # 轮询任务状态
                             task_headers = {
                                 "Authorization": f"Bearer {key['key']}",
                                 "X-ModelScope-Task-Type": "image_generation"
                             }
                             
-                            max_retries = 90
+                            max_retries = 30
                             retry_count = 0
                             task_completed = False
 

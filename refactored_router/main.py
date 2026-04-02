@@ -217,12 +217,12 @@ print(f"图片链接 (数组): {response.images[0]}")""",
                 "base_url": "http://localhost:2166/v1",
                 "api_key": "multi-proxy-2025-2000q",
                 "model": "txt2img",
-                "note": "技术实现：采用 ModelScope 异步模式（X-ModelScope-Async-Mode: true），自动获取 task_id 并轮询任务状态（最多 90 次，每 2 秒一次），从 output_images 数组中提取图片链接"
+                "note": "技术实现：采用 ModelScope 异步模式（X-ModelScope-Async-Mode: true），自动获取 task_id 并轮询任务状态（最多 30 次，每 2 秒一次），从 output_images 数组中提取图片链接"
             }
         },
         "img2img": {
             "name": "图生图 (img2img)",
-            "description": "图片生成图片，支持单图或多图输入，只需要传 model='img2img'",
+            "description": "图片生成图片，当前会提取首张输入图片并转为上游要求的单个 image_url 字符串，只需要传 model='img2img'",
             "curl": """curl -X POST http://localhost:2166/v1/chat/completions \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer multi-proxy-2025-2000q" \\
@@ -265,7 +265,7 @@ print(f"图片链接 (数组): {response.images[0]}")""",
                 "base_url": "http://localhost:2166/v1",
                 "api_key": "multi-proxy-2025-2000q",
                 "model": "img2img",
-                "note": "技术实现：采用 ModelScope 异步模式（X-ModelScope-Async-Mode: true），自动获取 task_id 并轮询任务状态（最多 90 次，每 2 秒一次），图生图请求会自动转换为上游所需的 image_url 字段，并从 output_images 数组中提取图片链接"
+                "note": "技术实现：采用 ModelScope 异步模式（X-ModelScope-Async-Mode: true），自动获取非空 task_id 并轮询任务状态（最多 30 次，每 2 秒一次），图生图请求会提取首张输入图片并转换为上游所需的单个 image_url 字符串，再从 output_images 数组中提取图片链接"
             }
         }
     }
