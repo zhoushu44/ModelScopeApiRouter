@@ -1,6 +1,6 @@
-# ModelScopeApiRouter
-
 <div align="center">
+
+# ModelScope Router
 
 ![Python](https://img.shields.io/badge/Python-3.8%2B-blue)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.95%2B-green)
@@ -12,25 +12,22 @@
 
 ---
 
-## 📖 项目简介
+## ✨ 功能特性
 
-ModelScopeApiRouter 是一个基于 FastAPI 构建的高性能 AI 模型网关。它用于解决 **单点故障** 和 **API 调用限流** 问题。通过智能路由算法，它能自动管理多个 ModelScope 模型实例，实现负载均衡、故障转移（Failover）和精细化限流控制，确保你的 AI 应用始终保持高可用性。
+- 🔄 **智能轮询**：多 API Key 自动轮询，提升可用性
+- ⚖️ **负载均衡**：支持多模型、多 Key 的负载分发
+- 🛡️ **高可用容错**：请求失败自动重试、自动切换 Key / 模型
+- 📊 **额度追踪**：自动记录并展示各 Key 的 quota 信息
+- 🌐 **OpenAI 兼容接口**：兼容 `/v1/chat/completions`
+- 🖼️ **多类型支持**：支持 chat、vision、text2img、img2img
+- 🚀 **Docker / GitHub Actions 支持**：便于部署与自动发布
 
-无论你是个人开发者还是企业用户，都可以通过本系统统一管理 API 访问，提升服务稳定性和成功率。项目兼容 OpenAI API 格式，可直接接入现有 AI 工具链（如 Cursor、NextChat、LangChain 等）。
+---
 
-## ✨ 核心功能
+## 📋 环境要求
 
-- **🤖 智能路由策略**: 自动识别请求模型，在多个同类模型后端中选择最佳候选者。
-- **⚖️ 负载均衡**: 基于调用次数和权重的负载均衡，防止单一账号或模型过载。
-- **🛡️ 自动故障转移**: 当某个模型调用失败或超时，自动无缝切换到备用模型，用户无感知。
-- **🚦 智能限流熔断**: 实时监测 API 调用限制，自动跳过已耗尽配额的模型，并在配额重置后自动恢复。
-- **🌐 Web UI 界面**: 可视化管理 API Keys 和模型配置。
-- **🔑 多 API Key 管理**: 支持添加、删除、排序多个 API Key。
-- **📂 模型分类**: 支持 4 种类型（对话、视觉理解、文生图、图生图）。
-- **📋 简化调用**: 只需传类型（chat/txt2img/img2img/vision），内部自动处理。
-- **图生图请求转换**: `img2img` 会自动提取多模态消息中的首张图片 URL，并按上游要求转换为单个 `image_url` 字符串。
-- **🔌 OpenAI 兼容**: 提供与 OpenAI `v1/chat/completions` 完全兼容的接口，零成本迁移。
-- **🌊 流式响应支持**: 完美支持 Server-Sent Events (SSE) 流式输出，打字机效果流畅。
+- Python 3.8+
+- Docker（可选）
 
 ---
 
@@ -49,72 +46,96 @@ docker run -d -p 2166:2166 -v ./router_data:/app/refactored_router/router_data -
 
 ### 方式二：本地运行
 
-仅需一行 Python 命令即可启动服务。
-
-#### 1. 安装依赖
-
 ```bash
+# 安装依赖
 pip install -r requirements.txt
+
+# 启动服务
+python refactored_router/main.py
 ```
 
-#### 2. 启动服务
-
-在项目**根目录**下运行：
-```bash
-python -m refactored_router.main
-```
-
-服务将在 `http://localhost:2166` 启动。数据将持久化保存在 `./router_data` 目录。
+启动后访问：
+- Web UI: `http://localhost:2166`
+- API: `http://localhost:2166/v1/chat/completions`
 
 ---
 
-## 🌐 Web UI 使用
+## ⚙️ 配置说明
 
-打开浏览器访问：**http://localhost:2166**
+### 1. 配置 API Keys
 
-### 功能：
-- **API Key 管理**: 添加、删除 API Key
-- **模型管理**: 添加、删除、排序模型，按分类筛选
-- **调用说明**: 查看各种调用示例（cURL、Python、OpenAI）
-- **额度查询**: 查看各 API Key 的额度信息
+首次运行后，在 `refactored_router/router_data/api_keys.json` 中添加你的 ModelScope API Key：
+
+```json
+[
+  {
+    "id": "your-key-id",
+    "key": "ms-xxxxxxxxxxxxxxxx",
+    "name": "主 Key"
+  }
+]
+```
+
+### 2. 配置模型
+
+编辑 `refactored_router/config.json`，可按分类维护模型列表：
+
+```json
+[
+  {
+    "id": "1",
+    "name": "deepseek-v3-2",
+    "model_id": "deepseek-ai/DeepSeek-V3.2",
+    "category": "chat",
+    "order": 0
+  }
+]
+```
+
+支持分类：
+- `chat`
+- `vision`
+- `text2img`
+- `img2img`
 
 ---
 
-## 💻 使用指南 (Usage)
+## 🔌 API 使用示例
 
-本服务提供与 OpenAI 兼容的 API，这意味着您可以直接使用任何支持 OpenAI 的客户端库或软件。
+### chat
 
-### 简化调用方式（推荐）
-
-只需传类型标识符，内部会自动选择该分类优先级最高的模型：
-
-| 类型 | 说明 |
-|------|------|
-| `chat` | 对话模型 |
-| `vision` | 视觉理解模型 |
-| `txt2img` | 文生图模型 |
-| `img2img` | 图生图模型 |
-
-### 接入第三方客户端 (Cursor, NextChat 等)
-
-- **Base URL (API 域名)**: `http://localhost:2166/v1`（注意部分软件不需要 `/v1`）
-- **API Key**: 任意填写
-- **Model Name**: `chat` / `vision` / `txt2img` / `img2img`（推荐）
-
-### 命令行调用 (cURL)
-
-**对话：**
 ```bash
 curl http://localhost:2166/v1/chat/completions \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer multi-proxy-2025-2000q" \
   -d '{
     "model": "chat",
-    "messages": [{"role": "user", "content": "Hello!"}],
-    "stream": true
+    "messages": [{"role": "user", "content": "你好"}]
   }'
 ```
 
-**文生图：**
+### vision
+
+```bash
+curl http://localhost:2166/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer multi-proxy-2025-2000q" \
+  -d '{
+    "model": "vision",
+    "messages": [
+      {
+        "role": "user",
+        "content": [
+          {"type": "text", "text": "这张图片里有什么？"},
+          {"type": "image_url", "image_url": {"url": "https://qcloud.dpfile.com/pc/d6A1POwDkj8vKTNgbAZswnAaIM2fuXnejIO0X7lJQb9NIYslSlGEPeQVyA4hZRCP.jpg"}}
+        ]
+      }
+    ]
+  }'
+```
+
+### text2img
+
 ```bash
 curl http://localhost:2166/v1/chat/completions \
   -H "Content-Type: application/json" \
@@ -124,20 +145,9 @@ curl http://localhost:2166/v1/chat/completions \
     "messages": [{"role": "user", "content": "一只可爱的猫咪，高清，柔和光线"}]
   }'
 ```
-**技术实现：**
-- 采用 ModelScope 异步模式（`X-ModelScope-Async-Mode: "true"`）
-- 优先处理非空 `task_id` 并轮询任务状态（最多 30 次，每 2 秒一次）
-- 任务查询 API: `https://api-inference.modelscope.cn/v1/tasks/{task_id}`
-- 如果上游直接返回图片链接，也会直接提取并返回
-- 从 `output_images` 数组中提取图片链接
 
-**响应说明：**
-- `choices[0].message.content`: 图片 URL
-- `image_url`: 图片 URL（直接访问字段）
-- `images[0]`: 第一张图片 URL
-- 响应头中的 `modelscope-ratelimit-model-requests-remaining`: 当前模型剩余次数
+### img2img
 
-**图生图：**
 ```bash
 curl http://localhost:2166/v1/chat/completions \
   -H "Content-Type: application/json" \
@@ -155,118 +165,25 @@ curl http://localhost:2166/v1/chat/completions \
     ]
   }'
 ```
-**技术实现：**
-- 采用 ModelScope 异步模式（`X-ModelScope-Async-Mode: "true"`）
-- 优先处理非空 `task_id` 并轮询任务状态（最多 30 次，每 2 秒一次）
-- 任务查询 API: `https://api-inference.modelscope.cn/v1/tasks/{task_id}`
-- 图生图请求会自动提取首张输入图片，并转换为上游所需的单个 `image_url` 字符串
-- 如果上游返回空 `task_id` 且仍处于处理中，会自动切换下一个 Key 或模型继续尝试
-- 从 `output_images` 数组中提取图片链接
-
-**视觉理解（单图）：**
-```bash
-curl http://localhost:2166/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "vision",
-    "messages": [
-      {
-        "role": "user",
-        "content": [
-          {"type": "text", "text": "这张图片里有什么？"},
-          {"type": "image_url", "image_url": {"url": "https://qcloud.dpfile.com/pc/d6A1POwDkj8vKTNgbAZswnAaIM2fuXnejIO0X7lJQb9NIYslSlGEPeQVyA4hZRCP.jpg"}}
-        ]
-      }
-    ]
-  }'
-```
-
-### Python 客户端示例
-
-```python
-from openai import OpenAI
-
-client = OpenAI(
-    api_key="dummy",
-    base_url="http://localhost:2166/v1"
-)
-
-# 对话
-response = client.chat.completions.create(
-    model="chat",
-    messages=[{"role": "user", "content": "你好"}],
-    stream=False
-)
-print(response.choices[0].message.content)
-
-# 文生图
-response = client.chat.completions.create(
-    model="txt2img",
-    messages=[{"role": "user", "content": "一只可爱的猫咪，高清，柔和光线"}]
-)
-print(f"图片链接: {response.choices[0].message.content}")
-print(f"图片链接 (直接访问): {response.image_url}")
-print(f"图片链接 (数组): {response.images[0]}")
-
-# 图生图
-response = client.chat.completions.create(
-    model="img2img",
-    messages=[{
-        "role": "user",
-        "content": [
-            {"type": "text", "text": "优化这张图片，让它更清晰，颜色更自然"},
-            {"type": "image_url", "image_url": {"url": "https://qcloud.dpfile.com/pc/d6A1POwDkj8vKTNgbAZswnAaIM2fuXnejIO0X7lJQb9NIYslSlGEPeQVyA4hZRCP.jpg"}}
-        ]
-    }]
-)
-print(f"图片链接: {response.choices[0].message.content}")
-print(f"图片链接 (直接访问): {response.image_url}")
-print(f"图片链接 (数组): {response.images[0]}")
-
-# 视觉理解
-response = client.chat.completions.create(
-    model="vision",
-    messages=[{
-        "role": "user",
-        "content": [
-            {"type": "text", "text": "这张图片里有什么？"},
-            {"type": "image_url", "image_url": {"url": "https://qcloud.dpfile.com/pc/d6A1POwDkj8vKTNgbAZswnAaIM2fuXnejIO0X7lJQb9NIYslSlGEPeQVyA4hZRCP.jpg"}}
-        ]
-    }]
-)
-print(response.choices[0].message.content)
-```
 
 ---
 
-## ⚙️ 配置详解 (Configuration)
+## 🧠 路由与稳定性策略
 
-### 1. 模型路由配置 (config.json)
+当前路由层已统一支持以下稳定性策略：
 
-位于 `refactored_router/config.json`，定义了路由池中的模型列表。
+- 上游并发队列化
+- Key 级健康分调度
+- Key 级熔断与冷却
+- 模型级健康分调度
+- 模型级熔断与冷却
+- 空壳响应判失败并自动重试
 
-```json
-[
-  {
-    "id": "1",
-    "name": "deepseek-v3-2",
-    "model_id": "deepseek-ai/DeepSeek-V3.2",
-    "category": "chat",
-    "order": 0
-  },
-  {
-    "id": "2",
-    "name": "qwen-image",
-    "model_id": "Qwen/Qwen-Image",
-    "category": "text2img",
-    "order": 0
-  }
-]
-```
-
-**字段说明：**
-- `category`: 模型分类（chat/vision/text2img/img2img）
-- `order`: 排序（数字越小优先级越高）
+这套策略已统一应用于：
+- `chat`
+- `vision`
+- `text2img`
+- `img2img`
 
 ---
 
@@ -300,7 +217,7 @@ docker run -d \
 
 ## 🚀 GitHub Actions 自动构建
 
-本项目已配置 GitHub Actions，支持自动构建和发布 Docker 镜像。
+本项目已配置 GitHub Actions，支持自动构建并推送 Docker 镜像。
 
 ### 需要配置的 Secrets：
 
@@ -311,8 +228,28 @@ docker run -d \
 | `DOCKER_HUB_USERNAME` | 你的 Docker Hub 用户名 |
 | `DOCKER_HUB_TOKEN` | 你的 Docker Hub 密码或 Personal Access Token |
 
+### 自动推送标签
+
+GitHub Actions 在远端构建镜像时，会自动为同一个镜像推送以下固定标签：
+
+- `2.0`
+- `latest`
+
+对应镜像示例：
+
+```text
+<DOCKER_HUB_USERNAME>/modelscope-router:2.0
+<DOCKER_HUB_USERNAME>/modelscope-router:latest
+```
+
+说明：
+- 推送动作由 GitHub Actions 自动完成
+- 本地无需执行 `docker push`
+- 工作流文件位于 [.github/workflows/docker-build-publish.yml](.github/workflows/docker-build-publish.yml)
+
 ### 触发方式：
 - 推送到 `main` 分支
+- 推送到 `master` 分支
 - 创建 Release
 
 ---
