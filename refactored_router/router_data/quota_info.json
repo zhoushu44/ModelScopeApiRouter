@@ -33,10 +33,10 @@
     "updated_at": 1774714297.137612
   },
   "74d08786-8ab9-4037-9cef-c80de92ba45b": {
-    "model_limit": 20,
-    "model_remaining": 15,
     "daily_limit": 2000,
-    "daily_remaining": 1966,
-    "updated_at": 1778173062.2379608
+    "daily_remaining": 1807,
+    "model_limit": 200,
+    "model_remaining": 195,
+    "updated_at": 1778177863.0846903
   }
 }

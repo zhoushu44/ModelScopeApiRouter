@@ -6,7 +6,7 @@
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.95%2B-green)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![Docker](https://img.shields.io/badge/Docker-supported-blue)
-![Version](https://img.shields.io/badge/version-2.1-blue)
+![Version](https://img.shields.io/badge/version-2.2-blue)
 
 **用于 ModelScope 服务的企业级负载均衡与高可用路由网关**
 </div>
@@ -18,7 +18,8 @@
 - 🔄 **智能轮询**：多 API Key 自动轮询，提升可用性
 - ⚖️ **负载均衡**：支持多模型、多 Key 的负载分发
 - 🛡️ **高可用容错**：请求失败自动重试、自动切换 Key / 模型
-- 📊 **额度追踪**：自动记录并展示各 Key 的 quota 信息
+- 📊 **额度追踪**：自动记录并展示各 Key 的 quota 信息，Web UI 一键检测日配额+模型配额
+- 🧪 **模型/Key 可用性检测**：Web UI 支持单模型测试 + 批量并发测试 + Key 额度一键检测
 - 🌐 **OpenAI 兼容接口**：兼容 `/v1/chat/completions` 和 `/v1/models`
 - 🖼️ **多类型支持**：支持 chat、vision、text2img、img2img
 - ⏱️ **自适应轮询**：图片生成类请求按类别动态调整轮询时长
@@ -261,13 +262,13 @@ docker run -d \
 
 GitHub Actions 在远端构建镜像时，会自动为同一个镜像推送以下固定标签：
 
-- `2.1`
+- `2.2`
 - `latest`
 
 对应镜像示例：
 
 ```text
-<DOCKER_HUB_USERNAME>/modelscope-router:2.1
+<DOCKER_HUB_USERNAME>/modelscope-router:2.2
 <DOCKER_HUB_USERNAME>/modelscope-router:latest
 ```
 
@@ -332,6 +333,19 @@ MIT License
 ---
 
 ## 📋 更新日志
+
+### v2.2 (2026-05-08)
+
+**新增**
+- Key 额度一键检测：Web UI 支持并发测试所有 Key 的日配额和模型配额
+- 支持指定模型 ID 查看特定模型的限额，避免随机使用默认模型
+- 模型测试端点多 Key 轮换 + 重试（每 Key 最多 2 次），解决上游偶发空壳响应(choices=null)导致测试结果不稳定
+- 单个 Key 可独立测试额度
+
+**修复**
+- 强制去掉 `stream=true` 转为非流式返回，解决 Trae 等客户端卡在"正在分析问题"
+- 模型配额显示统一为 已用/总量，日配额和模型配额进度条方向一致
+- Key 额度检测路由顺序修复（避免被 DELETE `/api/keys/{key_id}` 拦截）
 
 ### v2.1 (2026-05-08)
 
