@@ -34,7 +34,7 @@ class StatsService:
                         self.reset_daily_stats()
             else:
                 self.reset_daily_stats()
-        except:
+        except Exception:
             self.reset_daily_stats()
         
         # 确保所有配置中的模型都在 stats 中有记录
@@ -57,7 +57,7 @@ class StatsService:
             data = {'date': str(date.today()), 'stats': self.stats}
             with open(config.STATS_FILE, 'w') as f:
                 json.dump(data, f, indent=2)
-        except:
+        except Exception:
             pass
 
     def reset_daily_stats(self):

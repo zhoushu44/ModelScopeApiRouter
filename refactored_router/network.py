@@ -107,6 +107,17 @@ class APIClient:
     def _is_empty_text_response(self, result: dict) -> bool:
         if not isinstance(result, dict) or not result:
             return True
+        # tool_calls 响应的 content 可能为空，但不应被视为空壳
+        choices = result.get("choices")
+        if isinstance(choices, list) and choices:
+            first_choice = choices[0]
+            if isinstance(first_choice, dict):
+                message = first_choice.get("message")
+                if isinstance(message, dict):
+                    # 有 tool_calls 就不是空响应
+                    tool_calls = message.get("tool_calls")
+                    if tool_calls and isinstance(tool_calls, list) and len(tool_calls) > 0:
+                        return False
         content = self._extract_text_content(result)
         if not self._is_non_empty_string(content):
             return True
