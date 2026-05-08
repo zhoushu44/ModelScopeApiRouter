@@ -539,19 +539,16 @@ Model: ${ex.openai.model}</div>
             prog.innerHTML = `<span style="color:#667eea;">⏳ 测试中... ${model ? '(模型: ' + escapeHtml(model) + ')' : ''}</span>`;
             try {
                 const body = { model };
-                const res = await fetch('/api/keys/test-all', {
+                const res = await fetch(`/api/keys/${keyId}/test`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(body)
                 });
                 const data = await res.json();
-                const mine = (data.results || []).find(r => r.key_id === keyId);
-                if (mine) {
-                    if (mine.success) {
-                        prog.innerHTML = '<span style="color:#4caf50;">✓ 测试完成</span>';
-                    } else {
-                        prog.innerHTML = `<span style="color:#ff4757;">✗ ${escapeHtml(mine.error || '失败')}</span>`;
-                    }
+                if (data.success) {
+                    prog.innerHTML = '<span style="color:#4caf50;">✓ 测试完成</span>';
+                } else {
+                    prog.innerHTML = `<span style="color:#ff4757;">✗ ${escapeHtml(data.error || '失败')}</span>`;
                 }
             } catch(e) {
                 prog.innerHTML = `<span style="color:#ff4757;">✗ ${escapeHtml(e.message)}</span>`;

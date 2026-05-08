@@ -4,11 +4,33 @@ import uuid
 import time
 import json
 import asyncio
+import socket
 from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+
+if sys.platform == "win32":
+    from asyncio.proactor_events import _ProactorBasePipeTransport
+    _orig_pipe_call_connection_lost = _ProactorBasePipeTransport._call_connection_lost
+    def _safe_pipe_call_connection_lost(self, exc):
+        try:
+            _orig_pipe_call_connection_lost(self, exc)
+        except (OSError, socket.error):
+            pass
+    _ProactorBasePipeTransport._call_connection_lost = _safe_pipe_call_connection_lost
+    try:
+        from asyncio.proactor_events import _ProactorBaseSocketTransport
+        _orig_sock_call_connection_lost = _ProactorBaseSocketTransport._call_connection_lost
+        def _safe_sock_call_connection_lost(self, exc):
+            try:
+                _orig_sock_call_connection_lost(self, exc)
+            except (OSError, socket.error):
+                pass
+        _ProactorBaseSocketTransport._call_connection_lost = _safe_sock_call_connection_lost
+    except ImportError:
+        pass
 
 current_dir = Path(__file__).parent
 if str(current_dir) not in sys.path:
@@ -194,6 +216,81 @@ async def test_all_keys(request: Request = None):
         "fail": len(results) - ok,
         "results": results
     }
+
+
+@app.post("/api/keys/{key_id}/test")
+async def test_single_key(key_id: str, request: Request = None):
+    import httpx
+
+    key = next((k for k in config.API_KEYS if k["id"] == key_id), None)
+    if not key:
+        return {"success": False, "error": "Key 不存在"}
+
+    model_override = None
+    if request:
+        try:
+            body = await request.json()
+            model_override = body.get("model", "").strip()
+        except Exception:
+            pass
+
+    if model_override:
+        test_model_id = model_override
+    else:
+        models_by_cat = config.get_models_by_category()
+        chat_models = models_by_cat.get("chat", [])
+        test_model_id = chat_models[0]["model_id"] if chat_models else "deepseek-v3"
+
+    try:
+        url = f"{config.BASE_URL}/chat/completions"
+        test_data = {
+            "model": test_model_id,
+            "messages": [{"role": "user", "content": "hi"}],
+            "max_tokens": 1
+        }
+        headers = {
+            "Authorization": f"Bearer {key['key']}",
+            "Content-Type": "application/json"
+        }
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(url, json=test_data, headers=headers, timeout=15)
+
+        daily_limit = resp.headers.get("modelscope-ratelimit-requests-limit")
+        daily_remaining = resp.headers.get("modelscope-ratelimit-requests-remaining")
+        model_limit = resp.headers.get("modelscope-ratelimit-model-requests-limit")
+        model_remaining = resp.headers.get("modelscope-ratelimit-model-requests-remaining")
+
+        quota = {}
+        if daily_limit: quota["daily_limit"] = int(daily_limit)
+        if daily_remaining: quota["daily_remaining"] = int(daily_remaining)
+        if model_limit: quota["model_limit"] = int(model_limit)
+        if model_remaining: quota["model_remaining"] = int(model_remaining)
+
+        if quota:
+            config.update_quota(key["id"], quota)
+            return {
+                "key_id": key["id"],
+                "key_name": key["name"],
+                "success": True,
+                "quota": quota,
+                "status": resp.status_code
+            }
+        else:
+            return {
+                "key_id": key["id"],
+                "key_name": key["name"],
+                "success": resp.status_code < 400,
+                "status": resp.status_code,
+                "quota": None,
+                "note": "响应头无额度信息"
+            }
+    except Exception as e:
+        return {
+            "key_id": key["id"],
+            "key_name": key["name"],
+            "success": False,
+            "error": str(e)
+        }
 
 
 @app.delete("/api/keys/{key_id}")
@@ -513,13 +610,16 @@ async def _sse_stream(result: dict, model_name: str, chunk_size: int = 2, includ
 
     choices = result.get("choices", [])
     if choices and isinstance(choices, list):
-        msg = choices[0].get("message", {})
-        if isinstance(msg, dict):
-            content = msg.get("content", "") or ""
-            reasoning_content = msg.get("reasoning_content", "") or ""
-            tool_calls = msg.get("tool_calls")
-            if tool_calls:
-                finish_reason = "tool_calls"
+        first_choice = choices[0] if choices else {}
+        if isinstance(first_choice, dict):
+            finish_reason = first_choice.get("finish_reason") or "stop"
+            msg = first_choice.get("message", {})
+            if isinstance(msg, dict):
+                content = msg.get("content", "") or ""
+                reasoning_content = msg.get("reasoning_content", "") or ""
+                tool_calls = msg.get("tool_calls")
+                if tool_calls:
+                    finish_reason = first_choice.get("finish_reason") or "tool_calls"
 
     stream_id = f"chatcmpl-{uuid.uuid4().hex[:12]}"
     created = int(time.time())
@@ -625,7 +725,15 @@ def _normalize_response(result: dict, requested_model: str) -> dict:
     if not isinstance(result, dict):
         return result
 
-    # 修正 model 字段：返回客户端请求的 model 名，而非上游 model_id
+    if "id" not in result or not result["id"]:
+        result["id"] = f"chatcmpl-{uuid.uuid4().hex[:29]}"
+
+    if "object" not in result:
+        result["object"] = "chat.completion"
+
+    if "created" not in result:
+        result["created"] = int(time.time())
+
     result["model"] = requested_model
 
     # 清理 system_fingerprint
@@ -674,12 +782,16 @@ async def chat_completions(request: Request):
     try:
         body = await request.json()
         requested_model = body.get("model", "chat")
-        is_stream = body.pop("stream", False)
-        # 解析 stream_options.include_usage
+        is_stream = body.get("stream", False)
         include_usage = False
         stream_options = body.pop("stream_options", None)
         if isinstance(stream_options, dict) and stream_options.get("include_usage"):
             include_usage = True
+
+        if is_stream:
+            body.pop("stream", None)
+        else:
+            body.pop("stream", None)
 
         # 基础请求验证
         if "messages" not in body or not isinstance(body.get("messages"), list) or len(body["messages"]) == 0:
@@ -718,23 +830,36 @@ async def chat_completions(request: Request):
         headers.pop("Authorization", None)
 
         # 图片生成类请求需要更长超时（异步轮询最多 80×3=240秒）
-        call_timeout = 180 if target_category in ("text2img", "img2img") else 60
+        call_timeout = 180
+
+        if is_stream:
+            stream_gen = api_client.call_model_stream(model_name, body, headers, timeout=call_timeout)
+            try:
+                first_chunk = await stream_gen.__anext__()
+            except StopAsyncIteration:
+                return JSONResponse(
+                    content={"error": {"message": "流式响应异常", "type": "server_error", "code": "internal_error"}},
+                    status_code=500
+                )
+
+            async def _combined_stream():
+                yield first_chunk
+                async for chunk in stream_gen:
+                    yield chunk
+
+            return StreamingResponse(
+                _combined_stream(),
+                media_type="text/event-stream",
+                headers={
+                    "Cache-Control": "no-cache",
+                    "Connection": "keep-alive"
+                }
+            )
 
         result, status, resp_headers = await api_client.call_model(
             model_name, body, headers, timeout=call_timeout
         )
 
-        if is_stream:
-            return StreamingResponse(
-                _sse_stream(result, requested_model, include_usage=include_usage),
-                media_type="text/event-stream",
-                headers={
-                    "Cache-Control": "no-cache",
-                    "Connection": "keep-alive",
-                }
-            )
-
-        # 非流式：规范化响应为严格 OpenAI 格式
         normalized = _normalize_response(result, requested_model)
 
         safe_response_headers = {

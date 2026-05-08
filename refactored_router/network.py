@@ -21,6 +21,10 @@ class RetryableResponseError(Exception):
     pass
 
 
+class _PreStreamError(Exception):
+    pass
+
+
 class APIClient:
     def __init__(self):
         self.client = None
@@ -58,17 +62,21 @@ class APIClient:
         return quota
     
     def is_key_exhausted(self, key_id: str, quota: Dict) -> bool:
-        model_exhausted = (
-            quota.get("model_limit", 0) > 0 and 
+        daily_exhausted = (
+            quota.get("daily_limit", 0) > 0 and 
             quota.get("daily_remaining", 0) <= 0
         )
-        return model_exhausted
+        model_exhausted = (
+            quota.get("model_limit", 0) > 0 and 
+            quota.get("model_remaining", 0) <= 0
+        )
+        return daily_exhausted or model_exhausted
     
     def should_try_next_key(self, quota: Dict) -> bool:
         model_quota_exhausted = (
             quota.get("model_limit", 0) > 0 and 
-            quota.get("daily_remaining", 0) < quota.get("model_limit", 0) and
-            quota.get("daily_remaining", 0) > 0
+            quota.get("model_remaining", 0) < quota.get("model_limit", 0) and
+            quota.get("model_remaining", 0) > 0
         )
         return model_quota_exhausted
 
@@ -107,16 +115,17 @@ class APIClient:
     def _is_empty_text_response(self, result: dict) -> bool:
         if not isinstance(result, dict) or not result:
             return True
-        # tool_calls 响应的 content 可能为空，但不应被视为空壳
         choices = result.get("choices")
         if isinstance(choices, list) and choices:
             first_choice = choices[0]
             if isinstance(first_choice, dict):
                 message = first_choice.get("message")
                 if isinstance(message, dict):
-                    # 有 tool_calls 就不是空响应
                     tool_calls = message.get("tool_calls")
                     if tool_calls and isinstance(tool_calls, list) and len(tool_calls) > 0:
+                        return False
+                    reasoning_content = message.get("reasoning_content")
+                    if self._is_non_empty_string(reasoning_content):
                         return False
         content = self._extract_text_content(result)
         if not self._is_non_empty_string(content):
@@ -425,8 +434,14 @@ class APIClient:
                 if not isinstance(choice, dict):
                     continue
                 message = choice.get("message")
-                if isinstance(message, dict) and self._is_non_empty_string(message.get("content")):
-                    return False
+                if isinstance(message, dict):
+                    if self._is_non_empty_string(message.get("content")):
+                        return False
+                    tool_calls = message.get("tool_calls")
+                    if tool_calls and isinstance(tool_calls, list) and len(tool_calls) > 0:
+                        return False
+                    if self._is_non_empty_string(message.get("reasoning_content")):
+                        return False
 
         return True
     
@@ -885,6 +900,153 @@ class APIClient:
             if not made_progress:
                 break
         
+        raise Exception("所有模型和 Key 都调用失败，请检查配置")
+
+    async def call_model_stream(self, model_name: str, data: dict, headers: dict, timeout: int):
+        target_category = "chat"
+        for model in config.MODELS:
+            if model.get("name") == model_name:
+                target_category = model.get("category", "chat")
+                break
+
+        if target_category in ("text2img", "img2img"):
+            raise Exception("图片生成模型不支持流式调用，请使用非流式请求")
+
+        models_by_category = config.get_models_by_category()
+        category_models = models_by_category.get(target_category, [])
+        if not category_models:
+            category_models = config.MODELS
+
+        all_keys = config.API_KEYS
+        if not all_keys:
+            raise Exception("没有可用的 API Key")
+
+        exhausted_models = set()
+        stream_started = False
+
+        while True:
+            candidate_models = await self._rank_available_models(category_models, exhausted_models)
+            if not candidate_models:
+                break
+
+            made_progress = False
+
+            for model in candidate_models:
+                made_progress = True
+                model_id = self._get_model_state_id(model)
+                await self._mark_model_selected(model_id)
+                logger.info(f"流式请求 - 尝试模型: {model['name']} ({model['model_id']})")
+                exhausted_keys_for_this_model = set()
+                model_last_error = None
+                model_retryable = False
+
+                while True:
+                    candidate_keys = await self._rank_available_keys(all_keys, exhausted_keys_for_this_model)
+                    if not candidate_keys:
+                        break
+
+                    key_made_progress = False
+
+                    for key in candidate_keys:
+                        key_made_progress = True
+                        await self._mark_key_selected(key["id"])
+
+                        url = f"{config.BASE_URL}/chat/completions"
+                        headers_copy = {
+                            "Content-Type": "application/json",
+                            "Authorization": f"Bearer {key['key']}"
+                        }
+
+                        request_data = data.copy()
+                        request_data["model"] = model["model_id"]
+                        request_data["stream"] = True
+
+                        json_data = json.dumps(request_data)
+
+                        try:
+                            async with httpx.AsyncClient() as client:
+                                async with client.stream(
+                                    "POST", url, content=json_data,
+                                    headers=headers_copy, timeout=timeout
+                                ) as response:
+                                    self._update_quota_from_headers(key["id"], response.headers)
+
+                                    if response.status_code == 429:
+                                        raise _PreStreamError("上游限流 429")
+
+                                    if response.status_code >= 400:
+                                        body_text = await response.aread()
+                                        raise _PreStreamError(f"HTTP {response.status_code}: {body_text.decode('utf-8', errors='replace')[:200]}")
+
+                                    stream_started = True
+
+                                    async for line in response.aiter_lines():
+                                        line = line.strip()
+                                        if not line:
+                                            continue
+                                        if not line.startswith("data:"):
+                                            continue
+
+                                        payload = line[5:].strip()
+
+                                        if payload == "[DONE]":
+                                            yield "data: [DONE]\n\n"
+                                            await self._mark_key_success(key["id"])
+                                            await self._mark_model_success(model_id)
+                                            logger.info(f"✅ 流式完成！模型: {model['name']}, Key: {key['name']}")
+                                            return
+
+                                        try:
+                                            chunk_data = json.loads(payload)
+                                            chunk_data["model"] = model_name
+                                            yield f"data: {json.dumps(chunk_data, ensure_ascii=False)}\n\n"
+                                        except json.JSONDecodeError:
+                                            yield f"data: {payload}\n\n"
+
+                                    await self._mark_key_success(key["id"])
+                                    await self._mark_model_success(model_id)
+                                    yield "data: [DONE]\n\n"
+                                    return
+
+                        except _PreStreamError as e:
+                            model_last_error = str(e)
+                            model_retryable = True
+                            status_code = 429 if "429" in str(e) else None
+                            await self._mark_key_retryable_failure(key["id"], str(e), status_code=status_code)
+                            logger.warning(f"  流式 Key {key['name']} 预流式错误: {e}")
+                            exhausted_keys_for_this_model.add(key["id"])
+                            continue
+                        except Exception as e:
+                            if stream_started:
+                                logger.error(f"  流式传输中途异常: {e}")
+                                error_obj = {"error": {"message": str(e), "type": "server_error"}}
+                                yield f"data: {json.dumps(error_obj, ensure_ascii=False)}\n\n"
+                                yield "data: [DONE]\n\n"
+                                return
+                            model_last_error = str(e)
+                            model_retryable = False
+                            await self._mark_key_fatal_failure(key["id"], str(e))
+                            logger.error(f"  流式 Key {key['name']} 连接异常: {e}")
+                            exhausted_keys_for_this_model.add(key["id"])
+                            continue
+
+                    if not key_made_progress:
+                        break
+
+                if model_last_error:
+                    if model_retryable:
+                        status_code = 429 if "429" in model_last_error else None
+                        await self._mark_model_retryable_failure(model_id, model_last_error, status_code=status_code)
+                    else:
+                        await self._mark_model_fatal_failure(model_id, model_last_error)
+                else:
+                    await self._mark_model_retryable_failure(model_id, "模型下无可用 Key")
+
+                exhausted_models.add(model_id)
+
+            if not made_progress:
+                break
+
         raise Exception("所有模型和 Key 都调用失败，请检查配置")
 
 
