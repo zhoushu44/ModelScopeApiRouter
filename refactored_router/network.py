@@ -102,6 +102,7 @@ class APIClient:
         return isinstance(value, str) and bool(value.strip())
 
     def _looks_like_image_url(self, value) -> bool:
+        # 这里简单的这样判断，是否合理？后续考虑改进。
         return self._is_non_empty_string(value) and (
             value.startswith("http://") or
             value.startswith("https://") or

@@ -14,7 +14,7 @@
         }
         .container { max-width: 1200px; margin: 0 auto; }
         .header { text-align: center; color: white; margin-bottom: 30px; }
-        .header h1 { font-size: 2rem; margin-bottom: 8px; }
+        .header h1 { font-size: 3rem; margin-bottom: 8px; }
         .card {
             background: white; border-radius: 12px; padding: 20px;
             margin-bottom: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);
@@ -164,17 +164,186 @@
             color: #3730a3; border-radius: 12px; font-size: 0.75rem;
             margin-bottom: 8px; font-weight: 600;
         }
+        
+        .header-wrapper {
+            position: relative;
+            margin-bottom: 30px;
+        }
+        
+        .help-links {
+            position: fixed;
+            top: 10px;
+            left: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 1000;
+            transition: opacity 0.3s, transform 0.3s;
+        }
+        
+        .help-links.hidden {
+            opacity: 0;
+            transform: translateY(-20px);
+            pointer-events: none;
+        }
+        
+        .help-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            background: rgba(255, 255, 255, 0.95);
+            color: #667eea;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s;
+        }
+        
+        .help-link:hover {
+            background: white;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .github-corner {
+            position: fixed;
+            top: 0;
+            right: 0;
+            z-index: 1000;
+            transition: opacity 0.3s, transform 0.3s;
+        }
+        
+        .github-corner.hidden {
+            opacity: 0;
+            transform: translateY(-20px);
+            pointer-events: none;
+        }
+        
+        .github-corner svg {
+            border: 0;
+            width: 120px;
+            height: 120px;
+            transition: all 0.3s;
+            filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.15));
+        }
+        
+        .github-corner .background {
+            fill: rgba(55, 40, 90, 0.45);
+        }
+        
+        .github-corner .octo-arm,
+        .github-corner .octo-body {
+            fill: white;
+        }
+        
+        .github-corner:hover svg {
+            transform: scale(1.05);
+        }
+        
+        .github-corner:hover .background {
+            fill: rgba(55, 40, 90, 0.6);
+        }
+        
+        .github-corner .octo-arm {
+            transform-origin: 130px 106px;
+        }
+        
+        .github-corner:hover .octo-arm {
+            animation: octocat-wave 560ms ease-in-out;
+        }
+        
+        @keyframes octocat-wave {
+            0%, 100% { transform: rotate(0) }
+            20%, 60% { transform: rotate(-25deg) }
+            40%, 80% { transform: rotate(10deg) }
+        }
+        
+        @media (max-width: 500px) {
+            .help-links {
+                position: fixed;
+                top: 10px;
+                left: 10px;
+            }
+            .github-corner svg {
+                width: 60px;
+                height: 60px;
+            }
+        }
+        
+        .back-to-top {
+            position: fixed;
+            bottom: 30px;
+            right: 8px;
+            width: 44px;
+            height: 44px;
+            background: rgba(255, 255, 255, 0.92);
+            color: #667eea;
+            border: none;
+            border-radius: 50%;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s;
+            pointer-events: none;
+        }
+        
+        .back-to-top.visible {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+        
+        .back-to-top:hover {
+            background: white;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        .back-to-top svg {
+            width: 22px;
+            height: 22px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>🤖 ModelScopeApiRouter</h1>
-            <div class="status-bar">
-                <span class="status-item" id="status-running">● 运行中</span>
-                <span class="status-item" id="key-count">API Keys: 0</span>
-                <span class="status-item" id="model-count">模型数: 0</span>
-                <span class="status-item" id="version-text">版本: 2.1</span>
+        <div class="header-wrapper">
+            <div class="help-links">
+                <a href="https://www.modelscope.cn/docs/model-service/API-Inference/intro" target="_blank" class="help-link">
+                    📖 魔搭社区 - 入门指南与账号绑定
+                </a>
+                <a href="https://modelscope.cn/my/access/token" target="_blank" class="help-link">
+                    🔑 魔搭社区 - 查看或新建 API Key
+                </a>
+                <a href="https://myaccount.console.aliyun.com/overview" target="_blank" class="help-link">
+                    👤 阿里云控制台账号中心实名制
+                </a>
+            </div>
+            
+            <a href="https://github.com/zhoushu44/ModelScopeApiRouter" target="_blank" class="github-corner" aria-label="View source on GitHub">
+                <svg viewBox="0 0 250 250" aria-hidden="true">
+                    <path d="M0,0 C40,40 90,90 115,115 L130,115 L142,142 C170,170 220,220 250,250 L250,0 Z" fill="currentColor" class="background"></path>
+                    <path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path>
+                    <path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path>
+                </svg>
+            </a>
+            
+            <div class="header">
+                <h1><span style="display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;background:rgba(255,255,255,0.92);border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.12);margin-right:10px;flex-shrink:0;"><svg style="width:36px;height:36px;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg"><path d="M21.3504 465.6128h112.384v112.4352H21.3504V465.6128zM455.7824 578.048h112.4352v112.384H455.7824v-112.4352zM792.9856 690.432h-112.384v97.28h209.664v-209.7152h-97.28v112.4352z" fill="#624AFF"></path><path d="M568.2176 465.6128h112.384v112.4352h-112.384V465.6128zM21.3504 353.28h112.384v112.384H21.3504V353.2288z" fill="#36CFD1"></path><path d="M890.2656 465.6128h112.384v112.4352h-112.384V465.6128z" fill="#624AFF"></path><path d="M890.2656 353.28h112.384v112.384h-112.384V353.2288z" fill="#36CFD1"></path><path d="M680.6016 256v97.28h112.384v112.384h97.28V256h-209.664z" fill="#624AFF"></path><path d="M343.3472 465.6128h112.4352v112.4352H343.3472V465.6128z" fill="#36CFD1"></path><path d="M231.0144 353.28h112.384V256H133.7344v209.664h97.28V353.28zM231.0144 578.048h-97.28v209.6128h209.664v-97.28H231.0144V578.048z" fill="#624AFF"></path></svg></span>ModelScopeApiRouter</h1>
+                <div class="status-bar">
+                    <span class="status-item" id="status-running">● 运行中</span>
+                    <span class="status-item" id="key-count">API Keys: 0</span>
+                    <span class="status-item" id="model-count">模型数: 0</span>
+                    <span class="status-item" id="version-text">版本: 2.3</span>
+                </div>
             </div>
         </div>
 
@@ -199,10 +368,12 @@
                 </div>
                 <button class="btn btn-primary" onclick="addKey()">添加</button>
                 <div style="display:flex;align-items:center;gap:8px;margin-top:10px;">
-                    <input type="text" id="quota-test-model" placeholder="要测试的模型ID，如 Qwen/Qwen3-30B-A3B" style="flex:1;padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:0.85rem;">
+                    <select id="quota-test-model" style="flex:1;padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:0.85rem;">
+                        <option value="">默认第一个 chat 模型</option>
+                    </select>
                     <button class="btn btn-secondary" id="batch-key-test-btn" onclick="batchTestKeys()" style="flex-shrink:0;">🔍 一键测试所有 Key</button>
                 </div>
-                <div style="font-size:0.75rem;color:#999;margin-top:4px;">填写模型ID可查看该模型的配额，留空则使用默认第一个 chat 模型</div>
+                <div style="font-size:0.75rem;color:#999;margin-top:4px;">选择模型可查看该模型的配额，留空则使用默认第一个 chat 模型</div>
                 <span id="key-test-progress" style="display:none;margin-top:6px;font-size:0.85rem;"></span>
             </div>
 
@@ -293,6 +464,7 @@
     <script>
         let categories = {};
         let examples = {};
+        let defaultTestModel = { id: '', name: '' };  // 存储默认测试模型
         
         function showTab(tabName) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -326,11 +498,71 @@
                 const modelsData = await modelsRes.json();
                 categories = modelsData.categories;
                 renderModels(modelsData.models_by_category);
+                renderTestModelSelect(modelsData.models);
                 
                 document.getElementById('key-count').textContent = `API Keys: ${keysData.keys.length}`;
                 document.getElementById('model-count').textContent = `模型数: ${modelsData.models.length}`;
             } catch (e) {
                 console.error(e);
+            }
+        }
+        
+        function renderTestModelSelect(models) {
+            const select = document.getElementById('quota-test-model');
+            const currentValue = select.value;
+            
+            select.innerHTML = '<option value="">默认第一个 chat 模型</option>';
+            
+            // 按 order 字段排序
+            const sortedModels = [...models].sort((a, b) => (a.order || 0) - (b.order || 0));
+            
+            // 按分类分组
+            const groupedModels = {};
+            sortedModels.forEach(model => {
+                const category = model.category || 'chat';
+                if (!groupedModels[category]) {
+                    groupedModels[category] = [];
+                }
+                groupedModels[category].push(model);
+            });
+            
+            // 设置默认测试模型（chat 类里 order 最小的）
+            if (groupedModels['chat'] && groupedModels['chat'].length > 0) {
+                defaultTestModel = {
+                    id: groupedModels['chat'][0].model_id,
+                    name: groupedModels['chat'][0].name
+                };
+            } else {
+                defaultTestModel = { id: '', name: '默认模型' };
+            }
+            
+            // 按分类顺序添加选项
+            const categoryOrder = ['chat', 'vision', 'text2img', 'img2img'];
+            const categoryNames = {
+                'chat': '对话',
+                'vision': '视觉理解',
+                'text2img': '文生图',
+                'img2img': '图生图'
+            };
+            
+            categoryOrder.forEach(category => {
+                if (groupedModels[category] && groupedModels[category].length > 0) {
+                    const optgroup = document.createElement('optgroup');
+                    optgroup.label = categoryNames[category] || category;
+                    
+                    groupedModels[category].forEach(model => {
+                        const option = document.createElement('option');
+                        option.value = model.model_id;
+                        option.textContent = model.name;
+                        optgroup.appendChild(option);
+                    });
+                    
+                    select.appendChild(optgroup);
+                }
+            });
+            
+            if (currentValue) {
+                select.value = currentValue;
             }
         }
         
@@ -548,9 +780,24 @@ Model: ${ex.openai.model}</div>
         async function testSingleKey(keyId) {
             const prog = document.getElementById('key-test-progress');
             const modelInput = document.getElementById('quota-test-model');
-            const model = modelInput.value.trim() || '';
+            const modelValue = modelInput.value.trim();
+            const model = modelValue || '';
+            
+            // 获取实际测试的模型名称
+            let modelName = '';
+            if (modelValue) {
+                const selectedOption = modelInput.options[modelInput.selectedIndex];
+                modelName = selectedOption ? selectedOption.text : modelValue;
+            } else {
+                // 使用默认测试模型
+                modelName = defaultTestModel.name || '默认模型';
+            }
+            
+            // 禁用下拉框
+            modelInput.disabled = true;
+            
             prog.style.display = 'block';
-            prog.innerHTML = `<span style="color:#667eea;">⏳ 测试中... ${model ? '(模型: ' + escapeHtml(model) + ')' : ''}</span>`;
+            prog.innerHTML = `<span style="color:#667eea;">⏳ 测试中... (模型: ${escapeHtml(modelName)})</span>`;
             try {
                 const body = { model };
                 const res = await fetch(`/api/keys/${keyId}/test`, {
@@ -566,6 +813,9 @@ Model: ${ex.openai.model}</div>
                 }
             } catch(e) {
                 showTestResult('key-test-progress', `<span style="color:#ff4757;">✗ ${escapeHtml(e.message)}</span>`);
+            } finally {
+                // 恢复下拉框
+                modelInput.disabled = false;
             }
             loadData();
         }
@@ -574,12 +824,29 @@ Model: ${ex.openai.model}</div>
             const btn = document.getElementById('batch-key-test-btn');
             const prog = document.getElementById('key-test-progress');
             const modelInput = document.getElementById('quota-test-model');
-            const model = modelInput.value.trim() || '';
+            const modelValue = modelInput.value.trim();
+            const model = modelValue || '';
+            
+            // 获取实际测试的模型名称
+            let modelName = '';
+            if (modelValue) {
+                const selectedOption = modelInput.options[modelInput.selectedIndex];
+                modelName = selectedOption ? selectedOption.text : modelValue;
+            } else {
+                // 使用默认测试模型
+                modelName = defaultTestModel.name || '默认模型';
+            }
+            
+            // 禁用下拉框、按钮和所有单个测试按钮
+            modelInput.disabled = true;
             btn.disabled = true;
             btn.textContent = '⏳ 测试中...';
+            
+            // 禁用所有单个 Key 的测试按钮
+            document.querySelectorAll('.btn-test').forEach(b => b.disabled = true);
+            
             prog.style.display = 'block';
-            const modelLabel = model ? ` (模型: ${model})` : '';
-            prog.innerHTML = `<span style="color:#667eea;">⏳ 并发测试所有 Key...${modelLabel}</span>`;
+            prog.innerHTML = `<span style="color:#667eea;">⏳ 并发测试所有 Key... (模型: ${escapeHtml(modelName)})</span>`;
 
             try {
                 const body = { model };
@@ -591,16 +858,20 @@ Model: ${ex.openai.model}</div>
                 const data = await res.json();
                 if (data.success) {
                     const { total, ok, fail } = data;
-                    showTestResult('key-test-progress', `<span style="color:#333;">✅ ${total} 个 Key: <span style="color:#4caf50;font-weight:600;">${ok} 可用</span>${fail > 0 ? `, <span style="color:#ff4757;font-weight:600;">${fail} 不可用</span>` : ''}${modelLabel}</span>`, 30000);
+                    showTestResult('key-test-progress', `<span style="color:#333;">✅ ${total} 个 Key: <span style="color:#4caf50;font-weight:600;">${ok} 可用</span>${fail > 0 ? `, <span style="color:#ff4757;font-weight:600;">${fail} 不可用</span>` : ''} (模型: ${escapeHtml(modelName)})</span>`, 30000);
                 } else {
                     showTestResult('key-test-progress', `<span style="color:#ff4757;">✗ ${escapeHtml(data.error || '测试失败')}</span>`);
                 }
             } catch(e) {
                 showTestResult('key-test-progress', `<span style="color:#ff4757;">✗ ${escapeHtml(e.message)}</span>`);
+            } finally {
+                // 恢复下拉框、按钮和所有单个测试按钮
+                modelInput.disabled = false;
+                btn.disabled = false;
+                btn.textContent = '🔍 一键测试所有 Key';
+                document.querySelectorAll('.btn-test').forEach(b => b.disabled = false);
             }
 
-            btn.disabled = false;
-            btn.textContent = '🔍 一键测试所有 Key';
             loadData();
         }
 
@@ -739,6 +1010,37 @@ Model: ${ex.openai.model}</div>
 
         // 保存最近一次 modelsByCategory 供批量测试使用
         let lastModelsByCategory = {};
+    </script>
+    
+    <button class="back-to-top" onclick="scrollToTop()" aria-label="回到顶部">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="18 15 12 9 6 15"></polyline>
+        </svg>
+    </button>
+    
+    <script>
+        const helpLinks = document.querySelector('.help-links');
+        const githubCorner = document.querySelector('.github-corner');
+        const backToTop = document.querySelector('.back-to-top');
+        
+        window.addEventListener('scroll', () => {
+            const scrollY = window.scrollY || document.documentElement.scrollTop;
+            const hideThreshold = 200;
+            
+            if (scrollY > hideThreshold) {
+                helpLinks.classList.add('hidden');
+                githubCorner.classList.add('hidden');
+                backToTop.classList.add('visible');
+            } else {
+                helpLinks.classList.remove('hidden');
+                githubCorner.classList.remove('hidden');
+                backToTop.classList.remove('visible');
+            }
+        });
+        
+        function scrollToTop() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
     </script>
 </body>
 </html>

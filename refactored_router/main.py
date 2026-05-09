@@ -472,8 +472,7 @@ async def test_model(model_id: str):
                         resp = await client.post(url, content=_json.dumps(test_data), headers=headers, timeout=20)
                         if resp.status_code == 429:
                             last_error = f"[{key['name']}] 被限流(429)"
-                            await _asyncio.sleep(2)
-                            continue
+                            break
                         if resp.status_code >= 400:
                             last_error = f"[{key['name']}] HTTP {resp.status_code}"
                             break  # 非限流 4xx/5xx 不重试，换 key
@@ -486,10 +485,9 @@ async def test_model(model_id: str):
                             return {"success": True, "task_id": task_id, "model": target_model["model_id"], "key_name": key["name"]}
                         if result.get("image_url") or result.get("choices"):
                             return {"success": True, "model": target_model["model_id"], "key_name": key["name"]}
-                        # 空壳响应，重试
                         last_error = f"[{key['name']}] 返回空响应(choices=null)"
                         if attempt < max_retries - 1:
-                            await _asyncio.sleep(1)
+                            await _asyncio.sleep(0.5)
                         continue
                 else:
                     url = f"{config.BASE_URL}/chat/completions"
@@ -505,8 +503,7 @@ async def test_model(model_id: str):
                         resp = await client.post(url, content=_json.dumps(test_data), headers=headers, timeout=20)
                         if resp.status_code == 429:
                             last_error = f"[{key['name']}] 被限流(429)"
-                            await _asyncio.sleep(2)
-                            continue
+                            break
                         if resp.status_code >= 400:
                             last_error = f"[{key['name']}] HTTP {resp.status_code}"
                             break
@@ -517,16 +514,15 @@ async def test_model(model_id: str):
                             content = msg.get("content", "")
                             if content and content.strip():
                                 return {"success": True, "model": target_model["model_id"], "content": content[:80], "key_name": key["name"]}
-                        # 空壳响应，重试
                         last_error = f"[{key['name']}] 返回空响应(choices=null)"
                         if attempt < max_retries - 1:
-                            await _asyncio.sleep(1)
+                            await _asyncio.sleep(0.5)
                         continue
 
             except Exception as e:
                 last_error = f"[{key['name']}] {e}"
                 if attempt < max_retries - 1:
-                    await _asyncio.sleep(1)
+                    await _asyncio.sleep(0.5)
                     continue
                 break  # 这个 key 的网络/超时异常，换 key
 
