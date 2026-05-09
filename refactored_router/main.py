@@ -1,10 +1,36 @@
 import sys
 import uvicorn
+import uuid
+import time
+import json
+import asyncio
+import socket
 from pathlib import Path
 from fastapi import FastAPI, Request
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+
+if sys.platform == "win32":
+    from asyncio.proactor_events import _ProactorBasePipeTransport
+    _orig_pipe_call_connection_lost = _ProactorBasePipeTransport._call_connection_lost
+    def _safe_pipe_call_connection_lost(self, exc):
+        try:
+            _orig_pipe_call_connection_lost(self, exc)
+        except (OSError, socket.error):
+            pass
+    _ProactorBasePipeTransport._call_connection_lost = _safe_pipe_call_connection_lost
+    try:
+        from asyncio.proactor_events import _ProactorBaseSocketTransport
+        _orig_sock_call_connection_lost = _ProactorBaseSocketTransport._call_connection_lost
+        def _safe_sock_call_connection_lost(self, exc):
+            try:
+                _orig_sock_call_connection_lost(self, exc)
+            except (OSError, socket.error):
+                pass
+        _ProactorBaseSocketTransport._call_connection_lost = _safe_sock_call_connection_lost
+    except ImportError:
+        pass
 
 current_dir = Path(__file__).parent
 if str(current_dir) not in sys.path:
@@ -190,6 +216,81 @@ async def test_all_keys(request: Request = None):
         "fail": len(results) - ok,
         "results": results
     }
+
+
+@app.post("/api/keys/{key_id}/test")
+async def test_single_key(key_id: str, request: Request = None):
+    import httpx
+
+    key = next((k for k in config.API_KEYS if k["id"] == key_id), None)
+    if not key:
+        return {"success": False, "error": "Key 不存在"}
+
+    model_override = None
+    if request:
+        try:
+            body = await request.json()
+            model_override = body.get("model", "").strip()
+        except Exception:
+            pass
+
+    if model_override:
+        test_model_id = model_override
+    else:
+        models_by_cat = config.get_models_by_category()
+        chat_models = models_by_cat.get("chat", [])
+        test_model_id = chat_models[0]["model_id"] if chat_models else "deepseek-v3"
+
+    try:
+        url = f"{config.BASE_URL}/chat/completions"
+        test_data = {
+            "model": test_model_id,
+            "messages": [{"role": "user", "content": "hi"}],
+            "max_tokens": 1
+        }
+        headers = {
+            "Authorization": f"Bearer {key['key']}",
+            "Content-Type": "application/json"
+        }
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(url, json=test_data, headers=headers, timeout=15)
+
+        daily_limit = resp.headers.get("modelscope-ratelimit-requests-limit")
+        daily_remaining = resp.headers.get("modelscope-ratelimit-requests-remaining")
+        model_limit = resp.headers.get("modelscope-ratelimit-model-requests-limit")
+        model_remaining = resp.headers.get("modelscope-ratelimit-model-requests-remaining")
+
+        quota = {}
+        if daily_limit: quota["daily_limit"] = int(daily_limit)
+        if daily_remaining: quota["daily_remaining"] = int(daily_remaining)
+        if model_limit: quota["model_limit"] = int(model_limit)
+        if model_remaining: quota["model_remaining"] = int(model_remaining)
+
+        if quota:
+            config.update_quota(key["id"], quota)
+            return {
+                "key_id": key["id"],
+                "key_name": key["name"],
+                "success": True,
+                "quota": quota,
+                "status": resp.status_code
+            }
+        else:
+            return {
+                "key_id": key["id"],
+                "key_name": key["name"],
+                "success": resp.status_code < 400,
+                "status": resp.status_code,
+                "quota": None,
+                "note": "响应头无额度信息"
+            }
+    except Exception as e:
+        return {
+            "key_id": key["id"],
+            "key_name": key["name"],
+            "success": False,
+            "error": str(e)
+        }
 
 
 @app.delete("/api/keys/{key_id}")
@@ -493,27 +594,227 @@ print(f\"图片链接 (数组): {response.images[0]}\")""",
     return examples
 
 
+async def _sse_stream(result: dict, model_name: str, chunk_size: int = 2, include_usage: bool = False):
+    """将完整响应拆分为 OpenAI 兼容的 SSE chunks（含 reasoning_content 和 tool_calls 增量支持）
+
+    OpenAI streaming 规范:
+    - reasoning_content: 思考链内容，逐 chunk 发送（兼容 DeepSeek-R1 等思考模型）
+    - tool_calls 增量: 首个 chunk 发 id+type+name，后续 chunk 发 arguments 片段
+    - usage: 最后一个 chunk 可选包含 token 用量（当 stream_options.include_usage=true）
+    """
+    content = ""
+    reasoning_content = ""
+    tool_calls = None
+    finish_reason = "stop"
+    usage = result.get("usage")
+
+    choices = result.get("choices", [])
+    if choices and isinstance(choices, list):
+        first_choice = choices[0] if choices else {}
+        if isinstance(first_choice, dict):
+            finish_reason = first_choice.get("finish_reason") or "stop"
+            msg = first_choice.get("message", {})
+            if isinstance(msg, dict):
+                content = msg.get("content", "") or ""
+                reasoning_content = msg.get("reasoning_content", "") or ""
+                tool_calls = msg.get("tool_calls")
+                if tool_calls:
+                    finish_reason = first_choice.get("finish_reason") or "tool_calls"
+
+    stream_id = f"chatcmpl-{uuid.uuid4().hex[:12]}"
+    created = int(time.time())
+
+    def _make_chunk(delta: dict, fr=None, usage_data=None):
+        chunk = {
+            "id": stream_id,
+            "object": "chat.completion.chunk",
+            "created": created,
+            "model": model_name,
+            "choices": [{"index": 0, "delta": delta, "finish_reason": fr}]
+        }
+        if usage_data is not None:
+            chunk["usage"] = usage_data
+        return chunk
+
+    # 1. role
+    yield f"data: {json.dumps(_make_chunk({'role': 'assistant'}), ensure_ascii=False)}\n\n"
+    await asyncio.sleep(0.01)
+
+    # 2. reasoning_content 逐 chunk 发送（思考链，在正文之前）
+    if reasoning_content:
+        i = 0
+        while i < len(reasoning_content):
+            text = reasoning_content[i : i + chunk_size]
+            i += chunk_size
+            yield f"data: {json.dumps(_make_chunk({'reasoning_content': text}), ensure_ascii=False)}\n\n"
+            await asyncio.sleep(0.01)
+
+    # 3. content 逐 chunk 发送
+    i = 0
+    while i < len(content):
+        text = content[i : i + chunk_size]
+        i += chunk_size
+        yield f"data: {json.dumps(_make_chunk({'content': text}), ensure_ascii=False)}\n\n"
+        await asyncio.sleep(0.01)
+
+    # 4. tool_calls 增量发送（严格遵循 OpenAI streaming 格式）
+    if tool_calls and isinstance(tool_calls, list):
+        for tc in tool_calls:
+            if not isinstance(tc, dict):
+                continue
+            tc_index = tc.get("index", 0)
+            tc_id = tc.get("id", f"call_{uuid.uuid4().hex[:24]}")
+            tc_type = tc.get("type", "function")
+            tc_func = tc.get("function", {})
+            func_name = tc_func.get("name", "") if isinstance(tc_func, dict) else ""
+            func_args = tc_func.get("arguments", "") if isinstance(tc_func, dict) else ""
+            if not isinstance(func_args, str):
+                func_args = json.dumps(func_args, ensure_ascii=False)
+
+            # 4a. 首个 chunk：发送 id + type + function.name
+            delta_tc = {
+                "index": tc_index,
+                "id": tc_id,
+                "type": tc_type,
+                "function": {"name": func_name, "arguments": ""}
+            }
+            yield f"data: {json.dumps(_make_chunk({'tool_calls': [delta_tc]}), ensure_ascii=False)}\n\n"
+            await asyncio.sleep(0.01)
+
+            # 4b. 逐段发送 arguments 字符串
+            arg_chunk_size = 64
+            j = 0
+            while j < len(func_args):
+                arg_part = func_args[j : j + arg_chunk_size]
+                j += arg_chunk_size
+                delta_tc_arg = {
+                    "index": tc_index,
+                    "function": {"arguments": arg_part}
+                }
+                yield f"data: {json.dumps(_make_chunk({'tool_calls': [delta_tc_arg]}), ensure_ascii=False)}\n\n"
+                await asyncio.sleep(0.005)
+
+    # 5. finish
+    yield f"data: {json.dumps(_make_chunk({}, fr=finish_reason), ensure_ascii=False)}\n\n"
+
+    # 6. usage（当 stream_options.include_usage=true 时）
+    if include_usage and usage and isinstance(usage, dict):
+        yield f"data: {json.dumps(_make_chunk({}, fr=None, usage_data=usage), ensure_ascii=False)}\n\n"
+
+    yield "data: [DONE]\n\n"
+
+
+async def _sse_error_stream(message: str, error_type: str = "server_error", error_code: str = None):
+    """SSE 错误流"""
+    error_obj = {"message": message, "type": error_type}
+    if error_code:
+        error_obj["code"] = error_code
+    yield f"data: {json.dumps({'error': error_obj}, ensure_ascii=False)}\n\n"
+    yield "data: [DONE]\n\n"
+
+
+def _normalize_response(result: dict, requested_model: str) -> dict:
+    """将 ModelScope 上游响应规范化为严格 OpenAI 格式
+
+    清理内容:
+    1. 移除 choices[].delta (非流式响应不应有 delta)
+    2. 移除 message 中的非标准字段: function_calls, reasoning_content 等
+    3. 修正 system_fingerprint: 空字符串改为省略
+    4. 确保响应 model 字段为客户端请求的 model 名
+    """
+    if not isinstance(result, dict):
+        return result
+
+    if "id" not in result or not result["id"]:
+        result["id"] = f"chatcmpl-{uuid.uuid4().hex[:29]}"
+
+    if "object" not in result:
+        result["object"] = "chat.completion"
+
+    if "created" not in result:
+        result["created"] = int(time.time())
+
+    result["model"] = requested_model
+
+    # 清理 system_fingerprint
+    if "system_fingerprint" in result:
+        sf = result["system_fingerprint"]
+        if sf is None or sf == "":
+            del result["system_fingerprint"]
+
+    # 规范化 choices
+    choices = result.get("choices")
+    if isinstance(choices, list):
+        for choice in choices:
+            if not isinstance(choice, dict):
+                continue
+
+            # 非流式响应不应有 delta 字段
+            if "delta" in choice:
+                del choice["delta"]
+
+            # 规范化 message
+            message = choice.get("message")
+            if isinstance(message, dict):
+                # 移除 ModelScope 特有的非标准字段
+                # function_calls 是 tool_calls 的旧版本重复，会混淆 Agent
+                if "function_calls" in message:
+                    del message["function_calls"]
+
+                # reasoning_content 是思考链内容，保留但重命名为标准扩展
+                # OpenAI 没有此字段，但一些 SDK 支持。保留以兼容思考模型。
+                # 不做删除，但也不主动添加
+
+                # 当 tool_calls 存在且 content 为空字符串时，设为 None
+                # 某些 Agent 框架期望 tool_calls 时 content 为 null
+                tc = message.get("tool_calls")
+                if tc and isinstance(tc, list) and len(tc) > 0:
+                    content = message.get("content")
+                    if content is not None and not content.strip():
+                        message["content"] = None
+
+    return result
+
+
 @app.post("/v1/chat/completions")
 async def chat_completions(request: Request):
+    is_stream = False
     try:
         body = await request.json()
         requested_model = body.get("model", "chat")
+        is_stream = body.get("stream", False)
+        include_usage = False
+        stream_options = body.pop("stream_options", None)
+        if isinstance(stream_options, dict) and stream_options.get("include_usage"):
+            include_usage = True
 
-        # 暂不支持流式响应，去掉 stream 标志强制非流式返回
-        if body.get("stream"):
-            body.pop("stream")
-            import logging
-            logging.getLogger("uvicorn").info("检测到 stream=true，当前暂不支持流式，已自动转为非流式返回")
-        
+        if is_stream:
+            body.pop("stream", None)
+        else:
+            body.pop("stream", None)
+
+        # 基础请求验证
+        if "messages" not in body or not isinstance(body.get("messages"), list) or len(body["messages"]) == 0:
+            return JSONResponse(
+                content={
+                    "error": {
+                        "message": "'messages' is required and must be a non-empty array.",
+                        "type": "invalid_request_error",
+                        "code": "missing_messages"
+                    }
+                },
+                status_code=400
+            )
+
         category_mapping = {
             "chat": "chat",
             "txt2img": "text2img",
             "img2img": "img2img",
             "vision": "vision"
         }
-        
+
         target_category = category_mapping.get(requested_model)
-        
+
         if target_category:
             models_by_cat = config.get_models_by_category()
             cat_models = models_by_cat.get(target_category, [])
@@ -524,16 +825,42 @@ async def chat_completions(request: Request):
                 model_name = requested_model
         else:
             model_name = requested_model
-        
+
         headers = dict(request.headers)
         headers.pop("Authorization", None)
-        
+
         # 图片生成类请求需要更长超时（异步轮询最多 80×3=240秒）
-        call_timeout = 180 if target_category in ("text2img", "img2img") else 60
+        call_timeout = 180
+
+        if is_stream:
+            stream_gen = api_client.call_model_stream(model_name, body, headers, timeout=call_timeout)
+            try:
+                first_chunk = await stream_gen.__anext__()
+            except StopAsyncIteration:
+                return JSONResponse(
+                    content={"error": {"message": "流式响应异常", "type": "server_error", "code": "internal_error"}},
+                    status_code=500
+                )
+
+            async def _combined_stream():
+                yield first_chunk
+                async for chunk in stream_gen:
+                    yield chunk
+
+            return StreamingResponse(
+                _combined_stream(),
+                media_type="text/event-stream",
+                headers={
+                    "Cache-Control": "no-cache",
+                    "Connection": "keep-alive"
+                }
+            )
 
         result, status, resp_headers = await api_client.call_model(
             model_name, body, headers, timeout=call_timeout
         )
+
+        normalized = _normalize_response(result, requested_model)
 
         safe_response_headers = {
             k: v for k, v in resp_headers.items()
@@ -547,12 +874,39 @@ async def chat_completions(request: Request):
             }
         }
 
-        return JSONResponse(content=result, status_code=status, headers=safe_response_headers)
-        
+        return JSONResponse(content=normalized, status_code=status, headers=safe_response_headers)
+
     except Exception as e:
+        if is_stream:
+            return StreamingResponse(
+                _sse_error_stream(str(e)),
+                media_type="text/event-stream",
+                headers={"Cache-Control": "no-cache"}
+            )
+        # OpenAI 标准错误格式
+        error_type = "server_error"
+        error_code = "internal_error"
+        status_code = 500
+        error_msg = str(e)
+
+        if "没有可用的 API Key" in error_msg:
+            error_type = "invalid_request_error"
+            error_code = "no_api_key"
+            status_code = 401
+        elif "所有模型和 Key 都调用失败" in error_msg:
+            error_type = "server_error"
+            error_code = "all_models_failed"
+            status_code = 503
+
         return JSONResponse(
-            content={"error": {"message": str(e)}},
-            status_code=500
+            content={
+                "error": {
+                    "message": error_msg,
+                    "type": error_type,
+                    "code": error_code
+                }
+            },
+            status_code=status_code
         )
 
 

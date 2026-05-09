@@ -105,11 +105,10 @@ class Settings:
             json.dump(quota_info, f, ensure_ascii=False, indent=2)
 
     def update_quota(self, key_id: str, quota_data: Dict):
-        """更新某个 Key 的额度信息"""
-        self.QUOTA_INFO[key_id] = {
-            **quota_data,
-            "updated_at": time.time()
-        }
+        existing = self.QUOTA_INFO.get(key_id, {})
+        existing.update(quota_data)
+        existing["updated_at"] = time.time()
+        self.QUOTA_INFO[key_id] = existing
         self._save_quota_info(self.QUOTA_INFO)
 
     def get_quota(self, key_id: str) -> Optional[Dict]:

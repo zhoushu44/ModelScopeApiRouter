@@ -31,14 +31,14 @@ class Dashboard:
             self.live.update(self._generate_table(), refresh=True)
             self._thread = threading.Thread(target=self._updater, daemon=True)
             self._thread.start()
-        except:
+        except Exception:
             pass
 
     def stop(self):
         self.running = False
         try:
             self.live.stop()
-        except:
+        except Exception:
             pass
 
     def _print(self, renderable):
@@ -47,7 +47,7 @@ class Dashboard:
                 self.live.console.print(renderable)
             else:
                 self.console.print(renderable)
-        except:
+        except Exception:
             pass
 
     def log_request(self, model_id: str, is_stream: bool):
@@ -77,7 +77,7 @@ class Dashboard:
                 f"Use: {calls}/{limit} | {msg}"
             )
             self.refresh()
-        except:
+        except Exception:
             pass
 
     def log_error(self, msg: str):
@@ -87,7 +87,7 @@ class Dashboard:
         try:
             if self.running:
                 self.live.update(self._generate_table(), refresh=True)
-        except:
+        except Exception:
             pass
 
     def _updater(self):
@@ -135,7 +135,7 @@ class Dashboard:
                     status
                 )
             return table
-        except:
+        except Exception:
             return Table(title="🤖 ModelScope Router")
 
 # 全局 UI 实例
