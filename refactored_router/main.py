@@ -541,7 +541,7 @@ async def get_examples():
   -d '{
     \"model\": \"chat\",
     \"messages\": [
-      {\"role\": \"user\", \"content\": \"你好\"}
+      {\"role\": \"user\", \"content\": \"你好，你是什么大模型？\"}
     ]
   }'""",
             "python": """import openai
@@ -554,7 +554,7 @@ client = openai.OpenAI(
 response = client.chat.completions.create(
     model=\"chat\",
     messages=[
-        {\"role\": \"user\", \"content\": \"你好\"}
+        {\"role\": \"user\", \"content\": \"你好，你是什么大模型？\"}
     ]
 )
 
@@ -567,7 +567,7 @@ print(response.choices[0].message.content)""",
         },
         "vision": {
             "name": "视觉理解 (vision)",
-            "description": "视觉理解模型，支持单图或多图，只需要传 model='vision'",
+            "description": "视觉理解模型，支持单图或多图，只需要传 model='vision'！ 注：url字段，直接传入图片的base64编码完整字符串也是可以的！",
             "curl": """curl -X POST http://localhost:2166/v1/chat/completions \\
   -H \"Content-Type: application/json\" \\
   -H \"Authorization: Bearer multi-proxy-2025-2000q\" \\
@@ -577,7 +577,7 @@ print(response.choices[0].message.content)""",
       {
         \"role\": \"user\",
         \"content\": [
-          {\"type\": \"text\", \"text\": \"这张图片里有什么？\"},
+          {\"type\": \"text\", \"text\": \"这张图片里描绘了什么？\"},
           {\"type\": \"image_url\", \"image_url\": {\"url\": \"https://qcloud.dpfile.com/pc/d6A1POwDkj8vKTNgbAZswnAaIM2fuXnejIO0X7lJQb9NIYslSlGEPeQVyA4hZRCP.jpg\"}}
         ]
       }
@@ -596,7 +596,8 @@ response = client.chat.completions.create(
         {
             \"role\": \"user\",
             \"content\": [
-                {\"type\": \"text\", \"text\": \"这张图片里有什么？\"},
+                # 注：url字段，直接传入图片的base64编码完整字符串也可以！
+                {\"type\": \"text\", \"text\": \"这张图片里描绘了什么？\"},
                 {\"type\": \"image_url\", \"image_url\": {\"url\": \"https://qcloud.dpfile.com/pc/d6A1POwDkj8vKTNgbAZswnAaIM2fuXnejIO0X7lJQb9NIYslSlGEPeQVyA4hZRCP.jpg\"}}
             ]
         }
@@ -617,7 +618,7 @@ print(response.choices[0].message.content)""",
   -H \"Authorization: Bearer multi-proxy-2025-2000q\" \\
   -d '{
     \"model\": \"txt2img\",
-    \"messages\": [{\"role\": \"user\", \"content\": \"一只可爱的猫咪，高清，柔和光线\"}]
+    \"messages\": [{\"role\": \"user\", \"content\": \"一直金毛正面端坐，毛色金黄光亮，秋天，森林，林荫小道，微风，带牛仔帽，帅气拉风很酷，写实风格\"}]
   }'""",
             "python": """import openai
 
@@ -628,7 +629,7 @@ client = openai.OpenAI(
 
 response = client.chat.completions.create(
     model=\"txt2img\",
-    messages=[{\"role\": \"user\", \"content\": \"一只可爱的猫咪，高清，柔和光线\"}]
+    messages=[{\"role\": \"user\", \"content\": \"一直金毛正面端坐，毛色金黄光亮，秋天，森林，林荫小道，微风，带牛仔帽，帅气拉风很酷，写实风格\"}]
 )
 
 print(f\"图片链接: {response.choices[0].message.content}\")
@@ -638,12 +639,12 @@ print(f\"图片链接 (数组): {response.images[0]}\")""",
                 "base_url": "http://localhost:2166/v1",
                 "api_key": "multi-proxy-2025-2000q",
                 "model": "txt2img",
-                "note": "技术实现：采用 ModelScope 异步模式（X-ModelScope-Async-Mode: true），优先处理非空 task_id 并轮询任务状态（最多 30 次，每 2 秒一次），如果上游直接返回图片链接也会直接提取并返回，再从 output_images 数组中提取图片链接"
+                "note": "技术实现：采用 ModelScope 异步模式（X-ModelScope-Async-Mode: true），优先处理非空 task_id 并轮询任务状态（最多 60 次，每 2~8 秒一次），如果上游直接返回图片链接也会直接提取并返回，再从 output_images 数组中提取图片链接！"
             }
         },
         "img2img": {
             "name": "图生图 (img2img)",
-            "description": "图片生成图片，当前会提取首张输入图片并转为上游要求的单个 image_url 字符串，只需要传 model='img2img'",
+            "description": "图片生成图片，当前会提取首张输入图片并转为上游要求的单个 image_url 字符串，只需要传 model='img2img'！ 注：url字段同样支持传入base64编码字符串！",
             "curl": """curl -X POST http://localhost:2166/v1/chat/completions \\
   -H \"Content-Type: application/json\" \\
   -H \"Authorization: Bearer multi-proxy-2025-2000q\" \\
@@ -653,7 +654,7 @@ print(f\"图片链接 (数组): {response.images[0]}\")""",
       {
         \"role\": \"user\",
         \"content\": [
-          {\"type\": \"text\", \"text\": \"优化这张图片，让它更清晰，颜色更自然\"},
+          {\"type\": \"text\", \"text\": \"优化这张图片，添加一层很淡的雾效或柔光，整体更具朦胧和神秘的美感\"},
           {\"type\": \"image_url\", \"image_url\": {\"url\": \"https://qcloud.dpfile.com/pc/d6A1POwDkj8vKTNgbAZswnAaIM2fuXnejIO0X7lJQb9NIYslSlGEPeQVyA4hZRCP.jpg\"}}
         ]
       }
@@ -672,7 +673,8 @@ response = client.chat.completions.create(
         {
             \"role\": \"user\",
             \"content\": [
-                {\"type\": \"text\", \"text\": \"优化这张图片，让它更清晰，颜色更自然\"},
+                # 注：url字段，直接传入图片的base64编码完整字符串也可以！
+                {\"type\": \"text\", \"text\": \"优化这张图片，添加一层很淡的雾效或柔光，整体更具朦胧和神秘的美感\"},
                 {\"type\": \"image_url\", \"image_url\": {\"url\": \"https://qcloud.dpfile.com/pc/d6A1POwDkj8vKTNgbAZswnAaIM2fuXnejIO0X7lJQb9NIYslSlGEPeQVyA4hZRCP.jpg\"}}
             ]
         }
@@ -685,7 +687,8 @@ print(f\"图片链接 (数组): {response.images[0]}\")""",
             "openai": {
                 "base_url": "http://localhost:2166/v1",
                 "api_key": "multi-proxy-2025-2000q",
-                "model": "img2img"
+                "model": "img2img",
+                "note": "技术实现：采用 ModelScope 异步模式（X-ModelScope-Async-Mode: true），优先处理非空 task_id 并轮询任务状态（最多 120 次，每 2~8 秒一次），如果上游直接返回图片链接也会直接提取并返回，再从 output_images 数组中提取图片链接！"
             }
         }
     }

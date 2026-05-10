@@ -91,12 +91,11 @@ class APIClient:
         return daily_exhausted or model_exhausted
     
     def should_try_next_key(self, quota: Dict) -> bool:
-        model_quota_exhausted = (
+        model_quota_low = (
             quota.get("model_limit", 0) > 0 and 
-            quota.get("model_remaining", 0) < quota.get("model_limit", 0) and
-            quota.get("model_remaining", 0) > 0
+            quota.get("model_remaining", 0) <= 5
         )
-        return model_quota_exhausted
+        return model_quota_low
 
     def _is_non_empty_string(self, value) -> bool:
         return isinstance(value, str) and bool(value.strip())
@@ -744,6 +743,9 @@ class APIClient:
                                 
                                 request_data["model"] = model["model_id"]
                                 
+                                if target_category in ["chat", "vision"]:
+                                    request_data["stream"] = False
+                                
                                 logger.info(f"  使用模型: {model['name']}，Key: {key['name']}，第 {request_attempt}/{self.max_request_retries} 次尝试")
                                 
                                 json_data = json.dumps(request_data)
@@ -816,11 +818,11 @@ class APIClient:
                                         }
 
                                         if target_category == "img2img":
-                                            max_retries = 60
-                                            poll_interval = 4
+                                            max_retries = 120
+                                            poll_interval = 8
                                         else:
-                                            max_retries = 40
-                                            poll_interval = 3
+                                            max_retries = 60
+                                            poll_interval = 6
                                         retry_count = 0
                                         task_completed = False
 

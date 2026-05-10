@@ -233,9 +233,96 @@
         .tab-content.active { display: block; }
         
         .code-block {
-            background: #1e1e1e; color: #d4d4d4; padding: 15px;
-            border-radius: 8px; overflow-x: auto; font-family: 'Consolas', monospace;
-            font-size: 0.85rem; line-height: 1.5; white-space: pre-wrap;
+            position: relative;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: #e8f4f8;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            box-shadow: 
+                0 4px 12px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+        .code-block.light-theme {
+            background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+            color: #1565c0;
+            border: 2px solid #90caf9;
+            box-shadow: 0 2px 8px rgba(33, 150, 243, 0.15);
+        }
+        .copy-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            padding: 6px 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+            opacity: 0.9;
+            z-index: 10;
+            box-shadow: 
+                0 2px 8px rgba(102, 126, 234, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        }
+        .copy-btn:hover {
+            background: linear-gradient(135deg, #7c8df0 0%, #8b5fb8 100%);
+            opacity: 1;
+            transform: translateY(-1px);
+            box-shadow: 
+                0 4px 12px rgba(102, 126, 234, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        }
+        .copy-btn.copied {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            box-shadow: 
+                0 2px 8px rgba(72, 187, 120, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        }
+        .light-theme .copy-btn {
+            background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 
+                0 2px 8px rgba(21, 101, 192, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        }
+        .light-theme .copy-btn:hover {
+            background: linear-gradient(135deg, #1e88e5 0%, #1976d2 100%);
+            box-shadow: 
+                0 4px 12px rgba(21, 101, 192, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        }
+        .theme-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(102, 126, 234, 0.1);
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            color: #667eea;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .theme-toggle:hover {
+            background: rgba(102, 126, 234, 0.2);
+            transform: translateY(-1px);
+        }
+        .theme-toggle.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: transparent;
         }
         .example-section { margin-bottom: 20px; }
         .example-label {
@@ -550,7 +637,7 @@
                         <li><strong>Model 参数：</strong>4 选 1：<code>chat</code> / <code>txt2img</code> / <code>img2img</code> / <code>vision</code></li>
                     </ul>
                 </div>
-                <div class="form-row" style="margin-bottom: 20px;">
+                <div class="form-row" style="margin-bottom: 20px; align-items: flex-end;">
                     <div class="form-group" style="max-width: 300px;">
                         <label>选择类型</label>
                         <select id="example-category" onchange="loadExamples()">
@@ -560,6 +647,10 @@
                             <option value="img2img">图生图 (img2img)</option>
                         </select>
                     </div>
+                    <button class="theme-toggle" id="theme-toggle-btn" onclick="toggleCodeTheme()">
+                        <span id="theme-icon">🌙</span>
+                        <span id="theme-text">切换浅色</span>
+                    </button>
                 </div>
                 <div id="examples-content"></div>
             </div>
@@ -821,17 +912,17 @@
                     <p style="color:#555;margin-bottom:15px;">${ex.description}</p>
                     
                     <div class="example-label">cURL</div>
-                    <div class="code-block">${escapeHtml(ex.curl)}</div>
+                    <div class="code-block" id="code-curl"><button class="copy-btn" onclick="copyCode('code-curl')">复制</button>${escapeHtml(ex.curl)}</div>
                     
                     <div style="height:15px;"></div>
                     
                     <div class="example-label">Python (OpenAI SDK)</div>
-                    <div class="code-block">${escapeHtml(ex.python)}</div>
+                    <div class="code-block" id="code-python"><button class="copy-btn" onclick="copyCode('code-python')">复制</button>${escapeHtml(ex.python)}</div>
                     
                     ${ex.openai && !ex.openai.note ? `
                     <div style="height:15px;"></div>
                     <div class="example-label">OpenAI 配置</div>
-                    <div class="code-block">Base URL: ${ex.openai.base_url}
+                    <div class="code-block" id="code-openai"><button class="copy-btn" onclick="copyCode('code-openai')">复制</button>Base URL: ${ex.openai.base_url}
 API Key: ${ex.openai.api_key}
 Model: ${ex.openai.model}</div>
                     ` : ''}
@@ -843,6 +934,72 @@ Model: ${ex.openai.model}</div>
                     ` : ''}
                 </div>
             `;
+            
+            applyCurrentTheme();
+        }
+        
+        let isLightTheme = false;
+        
+        function toggleCodeTheme() {
+            isLightTheme = !isLightTheme;
+            const btn = document.getElementById('theme-toggle-btn');
+            const icon = document.getElementById('theme-icon');
+            const text = document.getElementById('theme-text');
+            
+            if (isLightTheme) {
+                btn.classList.add('active');
+                icon.textContent = '☀️';
+                text.textContent = '切换深色';
+            } else {
+                btn.classList.remove('active');
+                icon.textContent = '🌙';
+                text.textContent = '切换浅色';
+            }
+            
+            applyCurrentTheme();
+        }
+        
+        function applyCurrentTheme() {
+            const codeBlocks = document.querySelectorAll('.code-block');
+            codeBlocks.forEach(block => {
+                if (isLightTheme) {
+                    block.classList.add('light-theme');
+                } else {
+                    block.classList.remove('light-theme');
+                }
+            });
+        }
+        
+        async function copyCode(elementId) {
+            const codeBlock = document.getElementById(elementId);
+            const copyBtn = codeBlock.querySelector('.copy-btn');
+            const codeText = codeBlock.textContent.replace('复制', '').trim();
+            
+            try {
+                await navigator.clipboard.writeText(codeText);
+                copyBtn.textContent = '已复制';
+                copyBtn.classList.add('copied');
+                
+                setTimeout(() => {
+                    copyBtn.textContent = '复制';
+                    copyBtn.classList.remove('copied');
+                }, 2000);
+            } catch (err) {
+                const textArea = document.createElement('textarea');
+                textArea.value = codeText;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                copyBtn.textContent = '已复制';
+                copyBtn.classList.add('copied');
+                
+                setTimeout(() => {
+                    copyBtn.textContent = '复制';
+                    copyBtn.classList.remove('copied');
+                }, 2000);
+            }
         }
         
         function showInputError(inputId, errorDivId, message) {
