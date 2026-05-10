@@ -6,7 +6,7 @@
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.95%2B-green)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![Docker](https://img.shields.io/badge/Docker-supported-blue)
-![Version](https://img.shields.io/badge/version-2.2-blue)
+![Version](https://img.shields.io/badge/version-2.3-blue)
 
 **用于 ModelScope 服务的企业级负载均衡与高可用路由网关**
 </div>
@@ -56,6 +56,9 @@ pip install -r requirements.txt
 
 # 启动服务
 python refactored_router/main.py
+
+# 或者直接双击bat文件一键启动：
+# 双击 -> 一键启动器(python启动版).bat
 ```
 
 启动后访问：

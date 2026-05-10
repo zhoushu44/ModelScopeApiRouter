@@ -13,8 +13,24 @@
             padding: 20px;
         }
         .container { max-width: 1200px; margin: 0 auto; }
-        .header { text-align: center; color: white; margin-bottom: 30px; }
-        .header h1 { font-size: 3rem; margin-bottom: 8px; }
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            padding: 10px 40px 22px 40px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 18px;
+            box-shadow: 
+                8px 8px 16px rgba(0, 0, 0, 0.15),
+                -8px -8px 16px rgba(255, 255, 255, 0.08),
+                inset 1px 1px 2px rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        .header h1 {
+            font-size: 2.95rem;
+            margin-bottom: 8px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
         .card {
             background: white; border-radius: 12px; padding: 20px;
             margin-bottom: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);
@@ -37,19 +53,71 @@
             outline: none; border-color: #667eea;
         }
         .btn {
-            padding: 10px 20px; border: none; border-radius: 8px;
-            font-size: 0.9rem; cursor: pointer; font-weight: 600;
-            transition: all 0.2s;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            box-shadow: 
+                4px 4px 8px rgba(0, 0, 0, 0.15),
+                -2px -2px 6px rgba(255, 255, 255, 0.1);
+        }
+        .btn:active {
+            box-shadow: 
+                inset 2px 2px 4px rgba(0, 0, 0, 0.15),
+                inset -2px -2px 4px rgba(255, 255, 255, 0.05);
         }
         .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
         }
-        .btn-primary:hover { transform: translateY(-1px); }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 
+                6px 6px 12px rgba(102, 126, 234, 0.4),
+                -3px -3px 8px rgba(255, 255, 255, 0.15);
+        }
         .btn-danger {
-            background: #ff4757; color: white; padding: 6px 12px; font-size: 0.8rem;
+            background: linear-gradient(135deg, #ff4757 0%, #e63946 100%);
+            color: white;
+            padding: 6px 12px;
+            font-size: 0.8rem;
+        }
+        .btn-danger:hover {
+            transform: translateY(-1px);
+            box-shadow: 
+                4px 4px 8px rgba(255, 71, 87, 0.3),
+                -2px -2px 6px rgba(255, 255, 255, 0.1);
         }
         .btn-secondary {
-            background: #f0f0f0; color: #333; padding: 6px 12px; font-size: 0.8rem;
+            background: rgba(255, 255, 255, 0.15);
+            color: #333;
+            padding: 6px 12px;
+            font-size: 0.8rem;
+            box-shadow: 
+                3px 3px 6px rgba(0, 0, 0, 0.1),
+                -2px -2px 4px rgba(255, 255, 255, 0.08);
+        }
+        .btn-secondary:hover {
+            transform: translateY(-1px);
+            background: rgba(255, 255, 255, 0.25);
+        }
+        .btn-link {
+            background: linear-gradient(135deg, #36CFD1 0%, #2DB5B7 100%);
+            color: white;
+            padding: 12px 24px;
+            font-size: 0.9rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 
+                6px 6px 12px rgba(54, 207, 209, 0.4),
+                -3px -3px 8px rgba(255, 255, 255, 0.15);
         }
         .btn-small { padding: 6px 12px; font-size: 0.8rem; }
         .btn-icon {
@@ -58,11 +126,22 @@
         }
         
         .status-bar {
-            display: flex; gap: 15px; align-items: center; flex-wrap: wrap; justify-content: center;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
         }
         .status-item {
-            padding: 8px 15px; background: rgba(255,255,255,0.2);
-            border-radius: 20px; color: white; font-size: 0.9rem;
+            padding: 10px 18px;
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 20px;
+            color: white;
+            font-size: 0.9rem;
+            box-shadow: 
+                3px 3px 6px rgba(0, 0, 0, 0.12),
+                -2px -2px 4px rgba(255, 255, 255, 0.08),
+                inset 1px 1px 2px rgba(255, 255, 255, 0.1);
         }
         
         .key-list, .model-list { list-style: none; }
@@ -311,6 +390,21 @@
             width: 22px;
             height: 22px;
         }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+            20%, 40%, 60%, 80% { transform: translateX(4px); }
+        }
+        
+        .shake {
+            animation: shake 0.5s ease-in-out;
+        }
+        
+        .input-error {
+            border-color: #ff4757 !important;
+            box-shadow: 0 0 0 2px rgba(255, 71, 87, 0.1) !important;
+        }
     </style>
 </head>
 <body>
@@ -319,9 +413,6 @@
             <div class="help-links">
                 <a href="https://www.modelscope.cn/docs/model-service/API-Inference/intro" target="_blank" class="help-link">
                     📖 魔搭社区 - 入门指南与账号绑定
-                </a>
-                <a href="https://modelscope.cn/my/access/token" target="_blank" class="help-link">
-                    🔑 魔搭社区 - 查看或新建 API Key
                 </a>
                 <a href="https://myaccount.console.aliyun.com/overview" target="_blank" class="help-link">
                     👤 阿里云控制台账号中心实名制
@@ -358,15 +449,23 @@
                 <h2>➕ 添加 API Key</h2>
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Key 名称</label>
-                        <input type="text" id="key-name" placeholder="例如：Key 1">
+                        <label>Key 名称 <span style="color:#ff4757;">*</span></label>
+                        <input type="text" id="key-name" placeholder="例如：Key 1" required>
                     </div>
                     <div class="form-group">
-                        <label>API Key</label>
-                        <input type="text" id="key-value" placeholder="输入 ModelScope API Key">
+                        <label>API Key <span style="color:#ff4757;">*</span></label>
+                        <input type="text" id="key-value" placeholder="输入 ModelScope API Key" required>
                     </div>
                 </div>
-                <button class="btn btn-primary" onclick="addKey()">添加</button>
+                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+                    <div style="display:flex;gap:10px;align-items:center;">
+                        <button class="btn btn-primary" onclick="addKey()">添加</button>
+                        <a href="https://modelscope.cn/my/access/token" target="_blank" class="btn btn-link" style="text-decoration:none;padding:10px 16px;">
+                            🔑 前往魔搭新建你的Key
+                        </a>
+                    </div>
+                </div>
+                <div id="key-add-error" style="display:none;margin-top:8px;color:#ff4757;font-size:0.85rem;"></div>
                 <div style="display:flex;align-items:center;gap:8px;margin-top:10px;">
                     <select id="quota-test-model" style="flex:1;padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:0.85rem;">
                         <option value="">默认第一个chat模型</option>
@@ -390,8 +489,8 @@
                 <h2>➕ 添加模型</h2>
                 <div class="form-row">
                     <div class="form-group">
-                        <label>模型名称</label>
-                        <input type="text" id="model-name" placeholder="例如：deepseek-v3">
+                        <label>模型名称 <span style="color:#ff4757;">*</span></label>
+                        <input type="text" id="model-name" placeholder="例如：deepseek-v3" required>
                     </div>
                     <div class="form-group">
                         <label>分类</label>
@@ -405,11 +504,17 @@
                 </div>
                 <div class="form-row">
                     <div class="form-group" style="flex: 2;">
-                        <label>Model ID</label>
-                        <input type="text" id="model-id" placeholder="例如：deepseek-ai/DeepSeek-V3">
+                        <label>Model ID <span style="color:#ff4757;">*</span></label>
+                        <input type="text" id="model-id" placeholder="例如：deepseek-ai/DeepSeek-V3" required>
                     </div>
                 </div>
-                <button class="btn btn-primary" onclick="addModel()">添加</button>
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <button class="btn btn-primary" onclick="addModel()">添加</button>
+                    <a href="https://www.modelscope.cn/models?filter=inference_type,demo&page=1&sort=default&standby_status=hot&tabKey=other" target="_blank" class="btn btn-link" style="text-decoration:none;">
+                        🔗 前往魔搭社区模型库自行挑选
+                    </a>
+                </div>
+                <div id="model-add-error" style="display:none;margin-top:8px;color:#ff4757;font-size:0.85rem;"></div>
             </div>
 
             <div class="card">
@@ -740,10 +845,53 @@ Model: ${ex.openai.model}</div>
             `;
         }
         
+        function showInputError(inputId, errorDivId, message) {
+            const input = document.getElementById(inputId);
+            const errorDiv = document.getElementById(errorDivId);
+            
+            if (!input.value.trim()) {
+                input.classList.add('shake', 'input-error');
+                errorDiv.textContent = message;
+                errorDiv.style.display = 'block';
+                
+                setTimeout(() => {
+                    input.classList.remove('shake');
+                }, 500);
+                
+                setTimeout(() => {
+                    input.classList.remove('input-error');
+                }, 2000);
+                
+                return true;
+            }
+            return false;
+        }
+        
+        function hideInputError(inputId, errorDivId) {
+            const input = document.getElementById(inputId);
+            const errorDiv = document.getElementById(errorDivId);
+            input.classList.remove('input-error');
+            errorDiv.style.display = 'none';
+        }
+        
         async function addKey() {
-            const name = document.getElementById('key-name').value;
-            const key = document.getElementById('key-value').value;
-            if (!name || !key) return;
+            const nameInput = document.getElementById('key-name');
+            const keyInput = document.getElementById('key-value');
+            const errorDiv = document.getElementById('key-add-error');
+            
+            let hasError = false;
+            
+            if (showInputError('key-name', 'key-add-error', '请输入 Key 名称')) {
+                hasError = true;
+            }
+            if (showInputError('key-value', 'key-add-error', '请输入 API Key')) {
+                hasError = true;
+            }
+            
+            if (hasError) return;
+            
+            const name = nameInput.value;
+            const key = keyInput.value;
             
             try {
                 const res = await fetch('/api/keys', {
@@ -754,6 +902,8 @@ Model: ${ex.openai.model}</div>
                 if (res.ok) {
                     document.getElementById('key-name').value = '';
                     document.getElementById('key-value').value = '';
+                    hideInputError('key-name', 'key-add-error');
+                    hideInputError('key-value', 'key-add-error');
                     loadData();
                 }
             } catch (e) {
@@ -886,11 +1036,24 @@ Model: ${ex.openai.model}</div>
         }
         
         async function addModel() {
-            const name = document.getElementById('model-name').value;
-            const modelId = document.getElementById('model-id').value;
-            const category = document.getElementById('model-category').value;
+            const nameInput = document.getElementById('model-name');
+            const modelIdInput = document.getElementById('model-id');
+            const errorDiv = document.getElementById('model-add-error');
             
-            if (!name || !modelId) return;
+            let hasError = false;
+            
+            if (showInputError('model-name', 'model-add-error', '请输入模型名称')) {
+                hasError = true;
+            }
+            if (showInputError('model-id', 'model-add-error', '请输入 Model ID')) {
+                hasError = true;
+            }
+            
+            if (hasError) return;
+            
+            const name = nameInput.value;
+            const modelId = modelIdInput.value;
+            const category = document.getElementById('model-category').value;
             
             try {
                 const res = await fetch('/api/models', {
@@ -901,6 +1064,8 @@ Model: ${ex.openai.model}</div>
                 if (res.ok) {
                     document.getElementById('model-name').value = '';
                     document.getElementById('model-id').value = '';
+                    hideInputError('model-name', 'model-add-error');
+                    hideInputError('model-id', 'model-add-error');
                     loadData();
                 }
             } catch (e) {
