@@ -148,5 +148,5 @@ Thumbs.db
 refactored_router/router_data/model_stats.json
 refactored_router/router_data/api_keys.json
 refactored_router/router_data/quota_info.json
-refactored_router/config.json
+refactored_router/router_data/config.json
 *.log
