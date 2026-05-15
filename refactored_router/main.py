@@ -1056,7 +1056,7 @@ async def chat_completions(request: Request):
         headers = dict(request.headers)
         headers.pop("Authorization", None)
 
-        call_timeout = 180
+        call_timeout = 300
         
         input_content = extract_messages_content(body.get("messages", []))
 
